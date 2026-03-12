@@ -51,7 +51,7 @@ export const ASSETS = {
   // ── GALLERY (HOME PAGE) ────────────────────────────────────
   // 12 images for masonry grid. Mix portrait & landscape.
   gallery: [
-    { id: 1,  src: 'https://res.cloudinary.com/YOUR_CLOUD/image/upload/materialwear/gallery-01.jpg', alt: 'Premium shirt in cream linen',       span: 'tall' },
+    { id: 1,  src: 'https://res.cloudinary.com/dhhaiy58r/image/upload/v1729164616/mj_11226_4_no8nuz.jpg', alt: 'Premium shirt in cream linen',       span: 'tall' },
     { id: 2,  src: 'https://res.cloudinary.com/YOUR_CLOUD/image/upload/materialwear/gallery-02.jpg', alt: 'Model wearing dark green jacket',      span: 'normal' },
     { id: 3,  src: 'https://res.cloudinary.com/YOUR_CLOUD/image/upload/materialwear/gallery-03.jpg', alt: 'Close-up fabric texture detail',       span: 'normal' },
     { id: 4,  src: 'https://res.cloudinary.com/YOUR_CLOUD/image/upload/materialwear/gallery-04.jpg', alt: 'Formal attire collection overview',    span: 'wide' },
