@@ -112,7 +112,7 @@ export default function Footer() {
           {[
             { title: 'Company',  links: FOOTER_LINKS.company },
             { title: 'Shop',     links: FOOTER_LINKS.shop },
-            { title: 'Legal',    links: FOOTER_LINKS.legal },
+            { title: 'Account',  links: FOOTER_LINKS.account },
           ].map(({ title, links }) => (
             <div key={title}>
               <h4 className="text-xs font-semibold tracking-widest uppercase mb-5 opacity-50">

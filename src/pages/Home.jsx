@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { ASSETS } from '../config/assets'
 import { APP, CONTACT, SOCIAL } from '../config/constants'
 import { useScrollRevealGroup, useParallax, useIsScrolled, useCounter } from '../hooks/useScrollAnimation'
+import { api } from '../services/api'
 
 // ── HERO ─────────────────────────────────────────────────────
 function Hero() {
@@ -472,48 +473,278 @@ function Values() {
   )
 }
 
-// ── TESTIMONIALS ─────────────────────────────────────────────
-function Testimonials() {
-  const groupRef = useScrollRevealGroup(120)
-  const testimonials = [
-    { name: 'Adaeze O.', location: 'Lagos', rating: 5, text: 'The quality of Material Wear\'s shirts is unmatched. I\'ve been wearing them for over a year and they still look brand new. Worth every naira.' },
-    { name: 'Emeka C.', location: 'Abuja', rating: 5, text: 'I wore their formal collection to a client meeting and got three compliments within the first hour. This brand understands what it means to dress well.' },
-    { name: 'Fatima A.', location: 'Kano',  rating: 5, text: 'Finally a Nigerian brand that doesn\'t compromise on quality. The fabric feels premium, the cut is perfect. I\'m a customer for life.' },
+// ── BULK / GROUP ORDERS CTA ───────────────────────────────────
+function BulkOrdersCTA() {
+  const groupRef = useScrollRevealGroup(100)
+  const perks = [
+    {
+      icon: (
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
+          <path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+        </svg>
+      ),
+      title: 'Schools & Universities',
+      desc: 'Uniforms, jerseys and custom branded wear for institutions of all sizes.',
+    },
+    {
+      icon: (
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+          <rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/>
+          <line x1="12" y1="12" x2="12" y2="16"/><line x1="10" y1="14" x2="14" y2="14"/>
+        </svg>
+      ),
+      title: 'Corporate Teams',
+      desc: 'Branded staff uniforms and workwear that projects professionalism.',
+    },
+    {
+      icon: (
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+          <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+        </svg>
+      ),
+      title: 'Churches & NGOs',
+      desc: 'Matching outfits for conventions, outreaches and special events.',
+    },
+    {
+      icon: (
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+          <circle cx="12" cy="12" r="10"/><path d="M8.56 2.75c4.37 6.03 6.02 9.42 8.03 17.72m2.54-15.38c-3.72 4.35-8.94 5.66-16.88 5.85m19.5 1.9c-3.5-.93-6.63-.82-8.94 0-2.58.92-5.01 2.86-7.44 6.32"/>
+        </svg>
+      ),
+      title: 'Associations & Clubs',
+      desc: 'Coordinated apparel for social, professional and sports groups.',
+    },
   ]
+
+  return (
+    <section className="relative py-24 overflow-hidden" style={{ background: 'var(--c-primary)' }}>
+      {/* Background pattern */}
+      <div
+        className="absolute inset-0 pointer-events-none opacity-5"
+        style={{
+          backgroundImage: 'repeating-linear-gradient(45deg,currentColor 0,currentColor 1px,transparent 0,transparent 50%)',
+          backgroundSize: '20px 20px',
+          color: '#fff',
+        }}
+      />
+
+      <div className="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 relative">
+        {/* Header */}
+        <div ref={groupRef} className="text-center mb-16">
+          <p className="reveal section-eyebrow" style={{ color: 'var(--c-accent)' }}>
+            Group &amp; Bulk Orders
+          </p>
+          <h2 className="reveal section-title delay-200" style={{ color: '#fff' }}>
+            Dress Your Entire Team
+          </h2>
+          <div className="divider-gold reveal delay-300 mx-auto" />
+          <p className="reveal delay-400 mt-6 max-w-xl mx-auto text-base leading-relaxed" style={{ color: 'rgba(255,255,255,0.7)' }}>
+            From 10 to 10,000 pieces — we handle group uniform orders for organisations across Nigeria.
+            Your organiser shares a unique link; you pick your size and pay securely online.
+          </p>
+        </div>
+
+        {/* Perks grid */}
+        <div ref={groupRef} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-14">
+          {perks.map(({ icon, title, desc }, i) => (
+            <div
+              key={title}
+              className={`reveal delay-${(i + 1) * 100} p-6 rounded-2xl`}
+              style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.12)' }}
+            >
+              <div className="mb-4" style={{ color: 'var(--c-accent)' }}>{icon}</div>
+              <h3 className="font-display text-lg mb-2" style={{ color: '#fff' }}>{title}</h3>
+              <p className="text-sm leading-relaxed" style={{ color: 'rgba(255,255,255,0.6)' }}>{desc}</p>
+            </div>
+          ))}
+        </div>
+
+        {/* How it works strip */}
+        <div
+          className="reveal rounded-2xl p-8 mb-12"
+          style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}
+        >
+          <p className="text-center text-xs uppercase tracking-widest mb-8" style={{ color: 'rgba(255,255,255,0.5)' }}>
+            How It Works
+          </p>
+          <div className="grid grid-cols-1 sm:grid-cols-4 gap-6 text-center">
+            {[
+              ['01', 'Organiser Creates', 'Your group leader sets up the bulk order and gets a unique link'],
+              ['02', 'Share the Link',    'The link is shared with all group members to fill in their details'],
+              ['03', 'Pick Your Size',    'Each member selects their size and pays securely via Paystack'],
+              ['04', 'We Deliver',        'We produce and deliver all items together on your agreed date'],
+            ].map(([num, title, desc]) => (
+              <div key={num} className="relative">
+                <div className="font-display text-5xl font-light mb-3" style={{ color: 'rgba(255,255,255,0.15)' }}>
+                  {num}
+                </div>
+                <p className="text-sm font-semibold mb-1.5" style={{ color: '#fff' }}>{title}</p>
+                <p className="text-xs leading-relaxed" style={{ color: 'rgba(255,255,255,0.55)' }}>{desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* CTAs */}
+        <div className="reveal text-center flex flex-col sm:flex-row gap-4 justify-center items-center">
+          <Link to="/my-orders" className="btn-primary inline-flex items-center gap-2">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <line x1="16.5" y1="9.4" x2="7.5" y2="4.21"/>
+              <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+              <polyline points="3.27 6.96 12 12.01 20.73 6.96"/>
+              <line x1="12" y1="22.08" x2="12" y2="12"/>
+            </svg>
+            <span>View My Orders</span>
+          </Link>
+          <Link to="/contact" className="btn-outline inline-flex items-center gap-2">
+            <span>Enquire About Bulk Orders</span>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M5 12h14M12 5l7 7-7 7"/>
+            </svg>
+          </Link>
+        </div>
+        <p className="reveal text-center text-xs mt-5" style={{ color: 'rgba(255,255,255,0.4)' }}>
+          Already have a group order link? Visit it directly in your browser to place your order.
+        </p>
+      </div>
+    </section>
+  )
+}
+
+// ── TESTIMONIALS ─────────────────────────────────────────────
+const FALLBACK_TESTIMONIALS = [
+  { id: 1, author_display: 'Adaeze O.', location: 'Lagos', rating: 5, content: "The quality of Material Wear's shirts is unmatched. I've been wearing them for over a year and they still look brand new. Worth every naira.", is_verified: false },
+  { id: 2, author_display: 'Emeka C.',  location: 'Abuja', rating: 5, content: "I wore their formal collection to a client meeting and got three compliments within the first hour. This brand understands what it means to dress well.", is_verified: false },
+  { id: 3, author_display: 'Fatima A.', location: 'Kano',  rating: 5, content: "Finally a Nigerian brand that doesn't compromise on quality. The fabric feels premium, the cut is perfect. I'm a customer for life.", is_verified: false },
+]
+
+function Testimonials() {
+  const headerRef  = useScrollRevealGroup(120)
+  const cardsRef   = useRef(null)
+  const [items,   setItems]   = useState([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    api.get('/testimonials/testimonials/featured/')
+      .then(data => {
+        const list = Array.isArray(data) ? data : (data.results || [])
+        setItems(list.slice(0, 3).length ? list.slice(0, 3) : FALLBACK_TESTIMONIALS)
+      })
+      .catch(() => setItems(FALLBACK_TESTIMONIALS))
+      .finally(() => setLoading(false))
+  }, [])
+
+  // Trigger reveal animation once cards are in the DOM
+  useEffect(() => {
+    if (!cardsRef.current || loading) return
+    const cards = cardsRef.current.querySelectorAll('.testimonial-card')
+    cards.forEach((card, i) => {
+      setTimeout(() => card.classList.add('visible'), i * 120)
+    })
+  }, [loading, items])
 
   return (
     <section className="py-24" style={{ background: 'var(--c-bg)' }}>
       <div className="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div ref={groupRef} className="text-center mb-16">
+
+        <div ref={headerRef} className="text-center mb-16">
           <p className="reveal section-eyebrow">Social Proof</p>
           <h2 className="reveal section-title delay-200">What Our Customers Say</h2>
           <div className="divider-gold reveal delay-300 mx-auto" />
         </div>
-        <div ref={groupRef} className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          {testimonials.map(({ name, location, rating, text }, i) => (
-            <div key={name} className={`reveal testimonial-card delay-${(i+1)*100}`}>
-              <div className="flex gap-1 mb-4 mt-6">
-                {Array.from({ length: rating }).map((_, j) => (
-                  <span key={j} style={{ color: 'var(--c-accent)', fontSize: '14px' }}>★</span>
-                ))}
-              </div>
-              <p className="text-sm leading-relaxed mb-6" style={{ color: 'var(--c-text-muted)' }}>
-                "{text}"
-              </p>
-              <div className="flex items-center gap-3">
+
+        {/* Cards */}
+        <div ref={cardsRef} className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-10">
+          {loading
+            ? [1, 2, 3].map(i => (
+                <div key={i} className="testimonial-card" style={{ opacity: 1 }}>
+                  <div style={{ background: '#F3F4F6', borderRadius: 4, height: 14, width: '40%', marginBottom: 16, marginTop: 24, animation: 'shimmer 1.4s infinite', backgroundSize: '200% 100%',
+                    backgroundImage: 'linear-gradient(90deg,#f0f0f0 25%,#e8e8e8 50%,#f0f0f0 75%)' }} />
+                  <div style={{ background: '#F3F4F6', borderRadius: 4, height: 12, width: '100%', marginBottom: 8, animation: 'shimmer 1.4s infinite', backgroundSize: '200% 100%',
+                    backgroundImage: 'linear-gradient(90deg,#f0f0f0 25%,#e8e8e8 50%,#f0f0f0 75%)' }} />
+                  <div style={{ background: '#F3F4F6', borderRadius: 4, height: 12, width: '80%', marginBottom: 24, animation: 'shimmer 1.4s infinite', backgroundSize: '200% 100%',
+                    backgroundImage: 'linear-gradient(90deg,#f0f0f0 25%,#e8e8e8 50%,#f0f0f0 75%)' }} />
+                  <div className="flex items-center gap-3">
+                    <div style={{ width: 40, height: 40, borderRadius: '50%', background: '#F3F4F6', animation: 'shimmer 1.4s infinite', backgroundSize: '200% 100%',
+                      backgroundImage: 'linear-gradient(90deg,#f0f0f0 25%,#e8e8e8 50%,#f0f0f0 75%)' }} />
+                    <div style={{ background: '#F3F4F6', borderRadius: 4, height: 12, width: 80, animation: 'shimmer 1.4s infinite', backgroundSize: '200% 100%',
+                      backgroundImage: 'linear-gradient(90deg,#f0f0f0 25%,#e8e8e8 50%,#f0f0f0 75%)' }} />
+                  </div>
+                </div>
+              ))
+            : items.map((t) => (
                 <div
-                  className="w-10 h-10 rounded-full flex items-center justify-center text-white text-sm font-semibold"
-                  style={{ background: 'var(--c-primary)' }}
+                  key={t.id}
+                  className="testimonial-card"
+                  style={{ opacity: 0, transition: 'opacity 0.5s ease, transform 0.5s ease', transform: 'translateY(12px)' }}
                 >
-                  {name[0]}
+                  <div className="flex items-center justify-between mb-4 mt-6">
+                    <div className="flex gap-1">
+                      {Array.from({ length: 5 }).map((_, j) => (
+                        <span key={j} style={{ color: j < t.rating ? 'var(--c-accent)' : '#E5E7EB', fontSize: '14px' }}>★</span>
+                      ))}
+                    </div>
+                    {t.is_verified && (
+                      <span className="text-xs px-2 py-0.5 rounded font-semibold" style={{ background: 'rgba(6,78,59,0.08)', color: 'var(--c-primary)' }}>
+                        Verified
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-sm leading-relaxed mb-6" style={{ color: 'var(--c-text-muted)' }}>
+                    "{t.content}"
+                  </p>
+                  <div className="flex items-center gap-3">
+                    {t.avatar ? (
+                      <img src={t.avatar} alt="" className="w-10 h-10 rounded-full object-cover" />
+                    ) : (
+                      <div
+                        className="w-10 h-10 rounded-full flex items-center justify-center text-white text-sm font-semibold flex-shrink-0"
+                        style={{ background: 'var(--c-primary)' }}
+                      >
+                        {(t.author_display || t.author_name || '?')[0].toUpperCase()}
+                      </div>
+                    )}
+                    <div>
+                      <p className="font-semibold text-sm" style={{ color: 'var(--c-text)' }}>
+                        {t.author_display || t.author_name}
+                      </p>
+                      <p className="text-xs" style={{ color: 'var(--c-text-muted)' }}>
+                        {[t.location, t.company].filter(Boolean).join(' · ') || 'Customer'}
+                      </p>
+                    </div>
+                  </div>
                 </div>
-                <div>
-                  <p className="font-semibold text-sm" style={{ color: 'var(--c-text)' }}>{name}</p>
-                  <p className="text-xs" style={{ color: 'var(--c-text-muted)' }}>{location}</p>
-                </div>
-              </div>
-            </div>
-          ))}
+              ))
+          }
+        </div>
+
+        {/* CTAs */}
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+          <Link
+            to="/testimonials"
+            className="flex items-center gap-2 text-sm font-semibold px-6 py-2.5 transition-all duration-200"
+            style={{ border: '1.5px solid var(--c-primary)', color: 'var(--c-primary)', borderRadius: 4 }}
+            onMouseEnter={e => { e.currentTarget.style.background = 'var(--c-primary)'; e.currentTarget.style.color = 'white' }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--c-primary)' }}
+          >
+            Read All Reviews
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M5 12h14M12 5l7 7-7 7"/>
+            </svg>
+          </Link>
+          <Link
+            to="/testimonials#submit"
+            className="flex items-center gap-2 text-sm font-semibold px-6 py-2.5 text-white transition-all duration-200"
+            style={{ background: 'var(--c-primary)', borderRadius: 4 }}
+            onMouseEnter={e => e.currentTarget.style.background = 'var(--c-accent)'}
+            onMouseLeave={e => e.currentTarget.style.background = 'var(--c-primary)'}
+          >
+            Share Your Experience
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+            </svg>
+          </Link>
         </div>
       </div>
     </section>
@@ -588,6 +819,7 @@ export default function Home() {
       <BrandStory />
       <Gallery />
       <Values />
+      <BulkOrdersCTA />
       <Testimonials />
       <InstagramFeed />
     </main>

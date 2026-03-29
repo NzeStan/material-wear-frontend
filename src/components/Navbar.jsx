@@ -1,17 +1,32 @@
-import { useState, useEffect } from 'react'
-import { Link, useLocation } from 'react-router-dom'
+import { useState, useEffect, useRef } from 'react'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { APP, NAVIGATION, SOCIAL } from '../config/constants'
 import { ASSETS } from '../config/assets'
 import { useIsScrolled } from '../hooks/useScrollAnimation'
+import { useAuth } from '../context/AuthContext'
+import { useCart } from '../context/CartContext'
+
+function getInitials(user) {
+  if (!user) return '?'
+  if (user.first_name && user.last_name)
+    return `${user.first_name[0]}${user.last_name[0]}`.toUpperCase()
+  if (user.username) return user.username.slice(0, 2).toUpperCase()
+  return user.email?.[0]?.toUpperCase() || '?'
+}
 
 export default function Navbar() {
-  const [menuOpen, setMenuOpen] = useState(false)
+  const [menuOpen, setMenuOpen]               = useState(false)
   const [announcementVisible, setAnnouncementVisible] = useState(true)
-  const scrolled  = useIsScrolled(60)
-  const location  = useLocation()
+  const [accountOpen, setAccountOpen]         = useState(false)
+  const scrolled   = useIsScrolled(60)
+  const location   = useLocation()
+  const navigate   = useNavigate()
+  const { user, isAuthenticated, logout }     = useAuth()
+  const { itemCount, setDrawerOpen }          = useCart()
+  const dropdownRef = useRef(null)
 
   // Close menu on route change
-  useEffect(() => { setMenuOpen(false) }, [location])
+  useEffect(() => { setMenuOpen(false); setAccountOpen(false) }, [location])
 
   // Prevent scroll when menu is open
   useEffect(() => {
@@ -19,9 +34,26 @@ export default function Navbar() {
     return () => { document.body.style.overflow = '' }
   }, [menuOpen])
 
+  // Close account dropdown on outside click
+  useEffect(() => {
+    const handler = (e) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
+        setAccountOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [])
+
   const isActive = (path) => {
     if (path === '/') return location.pathname === '/'
     return location.pathname.startsWith(path)
+  }
+
+  const handleLogout = async () => {
+    setAccountOpen(false)
+    await logout()
+    navigate('/')
   }
 
   return (
@@ -57,7 +89,6 @@ export default function Navbar() {
 
             {/* Logo */}
             <Link to="/" className="flex items-center gap-3 flex-shrink-0" aria-label={APP.name}>
-              {/* Text logo fallback — replace with img when logo is ready */}
               <div className="flex items-center gap-2">
                 <div
                   className="w-8 h-8 flex items-center justify-center rounded-sm font-display font-bold text-white text-sm"
@@ -67,14 +98,11 @@ export default function Navbar() {
                 </div>
                 <span
                   className="font-display font-semibold tracking-wide text-lg hidden sm:block"
-                  style={{ color: scrolled ? 'var(--c-primary)' : 'var(--c-primary)' }}
+                  style={{ color: 'var(--c-primary)' }}
                 >
                   {APP.name}
                 </span>
               </div>
-              {/* Uncomment when logo is ready:
-              <img src={scrolled ? ASSETS.logo.main : ASSETS.logo.white} alt={APP.name} className="h-10 w-auto" />
-              */}
             </Link>
 
             {/* Desktop Nav */}
@@ -83,11 +111,7 @@ export default function Navbar() {
                 <li key={item.path}>
                   <Link
                     to={item.path}
-                    className={`relative text-sm font-medium tracking-wide uppercase transition-colors duration-200 pb-1 group
-                      ${isActive(item.path)
-                        ? 'text-primary-DEFAULT'
-                        : 'text-brand-text hover:text-primary-DEFAULT'
-                      }`}
+                    className="relative text-sm font-medium tracking-wide uppercase transition-colors duration-200 pb-1 group"
                     style={{
                       color: isActive(item.path) ? 'var(--c-primary)' : 'var(--c-text)',
                       fontSize: '0.8rem',
@@ -108,7 +132,8 @@ export default function Navbar() {
             </ul>
 
             {/* Right Actions */}
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-3 sm:gap-4">
+
               {/* Social icons (desktop) */}
               <div className="hidden lg:flex items-center gap-3">
                 <a href={SOCIAL.instagram} target="_blank" rel="noopener noreferrer"
@@ -131,9 +156,299 @@ export default function Navbar() {
                 </a>
               </div>
 
-              {/* CTA */}
+              {/* ── ACCOUNT BUTTON ──────────────────────────────── */}
+              {isAuthenticated ? (
+                /* Authenticated: avatar + dropdown */
+                <div className="relative hidden sm:block" ref={dropdownRef}>
+                  <button
+                    onClick={() => setAccountOpen(p => !p)}
+                    className="flex items-center gap-2 group"
+                    aria-label="Account menu"
+                    aria-expanded={accountOpen}
+                  >
+                    <div
+                      className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold text-white transition-all duration-200 group-hover:ring-2 group-hover:ring-offset-1"
+                      style={{
+                        background: 'var(--c-primary)',
+                        ringColor: 'var(--c-accent)',
+                      }}
+                      onMouseEnter={e => e.currentTarget.style.boxShadow = '0 0 0 2px var(--c-bg), 0 0 0 4px var(--c-accent)'}
+                      onMouseLeave={e => e.currentTarget.style.boxShadow = 'none'}
+                    >
+                      {getInitials(user)}
+                    </div>
+                    <svg
+                      width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+                      className={`transition-transform duration-200 ${accountOpen ? 'rotate-180' : ''}`}
+                      style={{ color: 'var(--c-text-muted)' }}
+                    >
+                      <polyline points="6 9 12 15 18 9"/>
+                    </svg>
+                  </button>
+
+                  {/* Dropdown */}
+                  {accountOpen && (
+                    <div
+                      className="absolute right-0 top-full mt-3 w-52 py-2 shadow-lg z-50"
+                      style={{ background: 'white', border: '1px solid rgba(6,78,59,0.1)', boxShadow: 'var(--shadow-lg)' }}
+                    >
+                      {/* User info header */}
+                      <div className="px-4 py-3 border-b" style={{ borderColor: '#F3F4F6' }}>
+                        <p className="text-xs font-semibold tracking-wide" style={{ color: 'var(--c-primary)' }}>
+                          {user?.first_name ? `${user.first_name} ${user.last_name || ''}`.trim() : user?.username}
+                        </p>
+                        <p className="text-xs mt-0.5 truncate" style={{ color: 'var(--c-text-muted)' }}>
+                          {user?.email}
+                        </p>
+                      </div>
+
+                      <Link
+                        to="/profile"
+                        className="flex items-center gap-3 px-4 py-2.5 text-xs font-medium tracking-wide transition-colors"
+                        style={{ color: 'var(--c-text)' }}
+                        onMouseEnter={e => { e.currentTarget.style.background = 'var(--c-bg)'; e.currentTarget.style.color = 'var(--c-primary)' }}
+                        onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--c-text)' }}
+                      >
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                          <circle cx="12" cy="7" r="4"/>
+                        </svg>
+                        My Account
+                      </Link>
+
+                      <Link
+                        to="/my-orders"
+                        className="flex items-center gap-3 px-4 py-2.5 text-xs font-medium tracking-wide transition-colors"
+                        style={{ color: 'var(--c-text)' }}
+                        onMouseEnter={e => { e.currentTarget.style.background = 'var(--c-bg)'; e.currentTarget.style.color = 'var(--c-primary)' }}
+                        onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--c-text)' }}
+                      >
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <line x1="16.5" y1="9.4" x2="7.5" y2="4.21"/>
+                          <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+                          <polyline points="3.27 6.96 12 12.01 20.73 6.96"/>
+                          <line x1="12" y1="22.08" x2="12" y2="12"/>
+                        </svg>
+                        My Orders
+                      </Link>
+
+                      <Link
+                        to="/organiser"
+                        className="flex items-center gap-3 px-4 py-2.5 text-xs font-medium tracking-wide transition-colors"
+                        style={{ color: 'var(--c-text)' }}
+                        onMouseEnter={e => { e.currentTarget.style.background = 'var(--c-bg)'; e.currentTarget.style.color = 'var(--c-primary)' }}
+                        onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--c-text)' }}
+                      >
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
+                        </svg>
+                        Organiser Dashboard
+                      </Link>
+
+                      <div className="border-t my-1" style={{ borderColor: '#F3F4F6' }} />
+
+                      <Link
+                        to="/image-my-orders"
+                        className="flex items-center gap-3 px-4 py-2.5 text-xs font-medium tracking-wide transition-colors"
+                        style={{ color: 'var(--c-text)' }}
+                        onMouseEnter={e => { e.currentTarget.style.background = 'var(--c-bg)'; e.currentTarget.style.color = 'var(--c-primary)' }}
+                        onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--c-text)' }}
+                      >
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/>
+                          <polyline points="21 15 16 10 5 21"/>
+                        </svg>
+                        My Image Orders
+                      </Link>
+
+                      <Link
+                        to="/image-organiser"
+                        className="flex items-center gap-3 px-4 py-2.5 text-xs font-medium tracking-wide transition-colors"
+                        style={{ color: 'var(--c-text)' }}
+                        onMouseEnter={e => { e.currentTarget.style.background = 'var(--c-bg)'; e.currentTarget.style.color = 'var(--c-primary)' }}
+                        onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--c-text)' }}
+                      >
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/>
+                          <polyline points="21 15 16 10 5 21"/>
+                        </svg>
+                        Image Organiser
+                      </Link>
+
+                      <div className="border-t my-1" style={{ borderColor: '#F3F4F6' }} />
+
+                      <Link
+                        to="/excel-my-orders"
+                        className="flex items-center gap-3 px-4 py-2.5 text-xs font-medium tracking-wide transition-colors"
+                        style={{ color: 'var(--c-text)' }}
+                        onMouseEnter={e => { e.currentTarget.style.background = 'var(--c-bg)'; e.currentTarget.style.color = 'var(--c-primary)' }}
+                        onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--c-text)' }}
+                      >
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <rect x="3" y="3" width="18" height="18" rx="2"/>
+                          <line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/>
+                          <line x1="9" y1="3" x2="9" y2="21"/>
+                        </svg>
+                        My Excel Orders
+                      </Link>
+
+                      <Link
+                        to="/excel-bulk-order/new"
+                        className="flex items-center gap-3 px-4 py-2.5 text-xs font-medium tracking-wide transition-colors"
+                        style={{ color: 'var(--c-text)' }}
+                        onMouseEnter={e => { e.currentTarget.style.background = 'var(--c-bg)'; e.currentTarget.style.color = 'var(--c-primary)' }}
+                        onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--c-text)' }}
+                      >
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+                        </svg>
+                        New Excel Order
+                      </Link>
+
+                      <div className="border-t my-1" style={{ borderColor: '#F3F4F6' }} />
+
+                      <Link
+                        to="/live-form-organiser"
+                        className="flex items-center gap-3 px-4 py-2.5 text-xs font-medium tracking-wide transition-colors"
+                        style={{ color: 'var(--c-text)' }}
+                        onMouseEnter={e => { e.currentTarget.style.background = 'var(--c-bg)'; e.currentTarget.style.color = 'var(--c-primary)' }}
+                        onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--c-text)' }}
+                      >
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3" fill="currentColor" stroke="none"/>
+                        </svg>
+                        Live Form Organiser
+                      </Link>
+
+                      <Link
+                        to="/measurements"
+                        className="flex items-center gap-3 px-4 py-2.5 text-xs font-medium tracking-wide transition-colors"
+                        style={{ color: 'var(--c-text)' }}
+                        onMouseEnter={e => { e.currentTarget.style.background = 'var(--c-bg)'; e.currentTarget.style.color = 'var(--c-primary)' }}
+                        onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--c-text)' }}
+                      >
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
+                        </svg>
+                        My Measurements
+                      </Link>
+
+                      <div className="border-t my-1" style={{ borderColor: '#F3F4F6' }} />
+
+                      <Link
+                        to="/academic-directory/submit"
+                        className="flex items-center gap-3 px-4 py-2.5 text-xs font-medium tracking-wide transition-colors"
+                        style={{ color: 'var(--c-text)' }}
+                        onMouseEnter={e => { e.currentTarget.style.background = 'var(--c-bg)'; e.currentTarget.style.color = 'var(--c-primary)' }}
+                        onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--c-text)' }}
+                      >
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/>
+                        </svg>
+                        Academic Directory
+                      </Link>
+
+                      {user?.is_staff && (
+                        <>
+                          <div className="border-t my-1" style={{ borderColor: '#F3F4F6' }} />
+                          <Link
+                            to="/admin"
+                            className="flex items-center gap-3 px-4 py-2.5 text-xs font-medium tracking-wide transition-colors"
+                            style={{ color: 'var(--c-primary)', background: 'rgba(6,78,59,0.04)' }}
+                            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(6,78,59,0.1)' }}
+                            onMouseLeave={e => { e.currentTarget.style.background = 'rgba(6,78,59,0.04)' }}
+                          >
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                            </svg>
+                            Admin Dashboard
+                          </Link>
+                          <Link
+                            to="/academic-directory/admin"
+                            className="flex items-center gap-3 px-4 py-2.5 text-xs font-medium tracking-wide transition-colors"
+                            style={{ color: 'var(--c-text)' }}
+                            onMouseEnter={e => { e.currentTarget.style.background = 'var(--c-bg)'; e.currentTarget.style.color = 'var(--c-primary)' }}
+                            onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--c-text)' }}
+                          >
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                              <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
+                              <rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>
+                            </svg>
+                            Directory Admin
+                          </Link>
+                        </>
+                      )}
+
+                      <div className="border-t my-1" style={{ borderColor: '#F3F4F6' }} />
+
+                      <button
+                        onClick={handleLogout}
+                        className="flex items-center gap-3 w-full px-4 py-2.5 text-xs font-medium tracking-wide text-left transition-colors"
+                        style={{ color: 'var(--c-text-muted)' }}
+                        onMouseEnter={e => { e.currentTarget.style.background = '#FEF2F2'; e.currentTarget.style.color = '#DC2626' }}
+                        onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--c-text-muted)' }}
+                      >
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+                          <polyline points="16 17 21 12 16 7"/>
+                          <line x1="21" y1="12" x2="9" y2="12"/>
+                        </svg>
+                        Sign Out
+                      </button>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                /* Guest: Sign In icon */
+                <Link
+                  to="/login"
+                  className="hidden sm:flex items-center gap-2 text-xs font-semibold tracking-widest uppercase transition-colors duration-200"
+                  style={{ color: 'var(--c-text)' }}
+                  aria-label="Sign in"
+                  onMouseEnter={e => e.currentTarget.style.color = 'var(--c-primary)'}
+                  onMouseLeave={e => e.currentTarget.style.color = 'var(--c-text)'}
+                >
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                    <circle cx="12" cy="7" r="4"/>
+                  </svg>
+                  <span className="hidden xl:inline">Sign In</span>
+                </Link>
+              )}
+
+              {/* Cart icon */}
+              <button
+                onClick={() => setDrawerOpen(true)}
+                className="relative flex items-center justify-center p-2 transition-colors"
+                aria-label="Open cart"
+                style={{ color: 'var(--c-text)' }}
+                onMouseEnter={e => e.currentTarget.style.color = 'var(--c-primary)'}
+                onMouseLeave={e => e.currentTarget.style.color = 'var(--c-text)'}
+              >
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                  <circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/>
+                  <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
+                </svg>
+                {itemCount > 0 && (
+                  <span
+                    style={{
+                      position: 'absolute', top: 0, right: 0,
+                      minWidth: 17, height: 17, borderRadius: 9,
+                      background: 'var(--c-accent)',
+                      color: 'white',
+                      fontSize: 10, fontWeight: 700,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      lineHeight: 1,
+                    }}
+                  >
+                    {itemCount > 99 ? '99+' : itemCount}
+                  </span>
+                )}
+              </button>
+
+              {/* CTA — Shop Now */}
               <Link
-                to="/contact"
+                to="/collections"
                 className="hidden sm:inline-flex items-center gap-2 px-5 py-2.5 text-xs font-semibold tracking-widest uppercase text-white transition-all duration-300"
                 style={{ background: 'var(--c-primary)' }}
                 onMouseEnter={e => e.currentTarget.style.background = 'var(--c-accent)'}
@@ -198,10 +513,192 @@ export default function Navbar() {
                     </Link>
                   </li>
                 ))}
+
+                {/* Account links in mobile menu */}
+                <li className="overflow-hidden pt-2" style={{ transitionDelay: menuOpen ? `${NAVIGATION.length * 60}ms` : '0ms' }}>
+                  {isAuthenticated ? (
+                    <>
+                      {user?.is_staff && (
+                        <Link
+                          to="/admin"
+                          className={`flex items-center gap-3 py-3 border-b transition-all duration-300 ${menuOpen ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'}`}
+                          style={{ borderColor: 'rgba(255,255,255,0.1)' }}
+                        >
+                          <div className="w-8 h-8 rounded-full flex items-center justify-center"
+                            style={{ background: 'rgba(245,158,11,0.25)' }}>
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ color: '#fde68a' }}>
+                              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                            </svg>
+                          </div>
+                          <span className="font-display text-2xl font-light text-white tracking-wide">Admin Dashboard</span>
+                        </Link>
+                      )}
+                      <Link
+                        to="/profile"
+                        className={`flex items-center gap-3 py-3 border-b transition-all duration-300 ${menuOpen ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'}`}
+                        style={{ borderColor: 'rgba(255,255,255,0.1)' }}
+                      >
+                        <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold"
+                          style={{ background: 'rgba(245,158,11,0.2)', color: 'var(--c-accent-light)' }}>
+                          {getInitials(user)}
+                        </div>
+                        <span className="font-display text-2xl font-light text-white tracking-wide">My Account</span>
+                      </Link>
+                      <Link
+                        to="/my-orders"
+                        className={`flex items-center gap-3 py-3 border-b transition-all duration-300 ${menuOpen ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'}`}
+                        style={{ borderColor: 'rgba(255,255,255,0.1)' }}
+                      >
+                        <div className="w-8 h-8 rounded-full flex items-center justify-center"
+                          style={{ background: 'rgba(255,255,255,0.1)' }}>
+                          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ color: 'rgba(255,255,255,0.7)' }}>
+                            <line x1="16.5" y1="9.4" x2="7.5" y2="4.21"/>
+                            <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+                            <polyline points="3.27 6.96 12 12.01 20.73 6.96"/>
+                            <line x1="12" y1="22.08" x2="12" y2="12"/>
+                          </svg>
+                        </div>
+                        <span className="font-display text-2xl font-light text-white tracking-wide">My Orders</span>
+                      </Link>
+                      <Link
+                        to="/organiser"
+                        className={`flex items-center gap-3 py-3 border-b transition-all duration-300 ${menuOpen ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'}`}
+                        style={{ borderColor: 'rgba(255,255,255,0.1)' }}
+                      >
+                        <div className="w-8 h-8 rounded-full flex items-center justify-center"
+                          style={{ background: 'rgba(255,255,255,0.1)' }}>
+                          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ color: 'rgba(255,255,255,0.7)' }}>
+                            <path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
+                          </svg>
+                        </div>
+                        <span className="font-display text-2xl font-light text-white tracking-wide">Organiser</span>
+                      </Link>
+                      <Link
+                        to="/image-my-orders"
+                        className={`flex items-center gap-3 py-3 border-b transition-all duration-300 ${menuOpen ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'}`}
+                        style={{ borderColor: 'rgba(255,255,255,0.1)' }}
+                      >
+                        <div className="w-8 h-8 rounded-full flex items-center justify-center"
+                          style={{ background: 'rgba(245,158,11,0.2)' }}>
+                          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" style={{ color: '#fde68a' }}>
+                            <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/>
+                            <polyline points="21 15 16 10 5 21"/>
+                          </svg>
+                        </div>
+                        <span className="font-display text-2xl font-light text-white tracking-wide">Image Orders</span>
+                      </Link>
+                      <Link
+                        to="/image-organiser"
+                        className={`flex items-center gap-3 py-3 border-b transition-all duration-300 ${menuOpen ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'}`}
+                        style={{ borderColor: 'rgba(255,255,255,0.1)' }}
+                      >
+                        <div className="w-8 h-8 rounded-full flex items-center justify-center"
+                          style={{ background: 'rgba(245,158,11,0.2)' }}>
+                          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" style={{ color: '#fde68a' }}>
+                            <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/>
+                            <polyline points="21 15 16 10 5 21"/>
+                          </svg>
+                        </div>
+                        <span className="font-display text-2xl font-light text-white tracking-wide">Image Organiser</span>
+                      </Link>
+                      <Link
+                        to="/excel-my-orders"
+                        className={`flex items-center gap-3 py-3 border-b transition-all duration-300 ${menuOpen ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'}`}
+                        style={{ borderColor: 'rgba(255,255,255,0.1)' }}
+                      >
+                        <div className="w-8 h-8 rounded-full flex items-center justify-center"
+                          style={{ background: 'rgba(22,163,74,0.2)' }}>
+                          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" style={{ color: '#86efac' }}>
+                            <rect x="3" y="3" width="18" height="18" rx="2"/>
+                            <line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/>
+                            <line x1="9" y1="3" x2="9" y2="21"/>
+                          </svg>
+                        </div>
+                        <span className="font-display text-2xl font-light text-white tracking-wide">Excel Orders</span>
+                      </Link>
+                      <Link
+                        to="/excel-bulk-order/new"
+                        className={`flex items-center gap-3 py-3 border-b transition-all duration-300 ${menuOpen ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'}`}
+                        style={{ borderColor: 'rgba(255,255,255,0.1)' }}
+                      >
+                        <div className="w-8 h-8 rounded-full flex items-center justify-center"
+                          style={{ background: 'rgba(22,163,74,0.2)' }}>
+                          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ color: '#86efac' }}>
+                            <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+                          </svg>
+                        </div>
+                        <span className="font-display text-2xl font-light text-white tracking-wide">New Excel Order</span>
+                      </Link>
+                      <Link
+                        to="/live-form-organiser"
+                        className={`flex items-center gap-3 py-3 border-b transition-all duration-300 ${menuOpen ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'}`}
+                        style={{ borderColor: 'rgba(255,255,255,0.1)' }}
+                      >
+                        <div className="w-8 h-8 rounded-full flex items-center justify-center"
+                          style={{ background: 'rgba(239,68,68,0.2)' }}>
+                          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" style={{ color: '#fca5a5' }}>
+                            <circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3" fill="currentColor" stroke="none"/>
+                          </svg>
+                        </div>
+                        <span className="font-display text-2xl font-light text-white tracking-wide">Live Forms</span>
+                      </Link>
+                      <Link
+                        to="/measurements"
+                        className={`flex items-center gap-3 py-3 border-b transition-all duration-300 ${menuOpen ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'}`}
+                        style={{ borderColor: 'rgba(255,255,255,0.1)' }}
+                      >
+                        <div className="w-8 h-8 rounded-full flex items-center justify-center"
+                          style={{ background: 'rgba(99,102,241,0.2)' }}>
+                          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" style={{ color: '#c7d2fe' }}>
+                            <path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
+                          </svg>
+                        </div>
+                        <span className="font-display text-2xl font-light text-white tracking-wide">Measurements</span>
+                      </Link>
+                      <Link
+                        to="/academic-directory/submit"
+                        className={`flex items-center gap-3 py-3 border-b transition-all duration-300 ${menuOpen ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'}`}
+                        style={{ borderColor: 'rgba(255,255,255,0.1)' }}
+                      >
+                        <div className="w-8 h-8 rounded-full flex items-center justify-center"
+                          style={{ background: 'rgba(251,191,36,0.2)' }}>
+                          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" style={{ color: '#fde68a' }}>
+                            <path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/>
+                          </svg>
+                        </div>
+                        <span className="font-display text-2xl font-light text-white tracking-wide">Academic Directory</span>
+                      </Link>
+                    </>
+                  ) : (
+                    <Link
+                      to="/login"
+                      className={`block py-3 border-b transition-all duration-300 ${menuOpen ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'}`}
+                      style={{ borderColor: 'rgba(255,255,255,0.1)' }}
+                    >
+                      <span className="font-display text-3xl font-light text-white tracking-wide">Sign In</span>
+                    </Link>
+                  )}
+                </li>
               </ul>
             </nav>
 
             <div className="mt-auto">
+              {isAuthenticated && (
+                <button
+                  onClick={handleLogout}
+                  className="flex items-center gap-2 mb-6 text-sm font-medium"
+                  style={{ color: 'rgba(255,255,255,0.5)' }}
+                  onMouseEnter={e => e.currentTarget.style.color = 'rgba(255,255,255,0.8)'}
+                  onMouseLeave={e => e.currentTarget.style.color = 'rgba(255,255,255,0.5)'}
+                >
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+                    <polyline points="16 17 21 12 16 7"/>
+                    <line x1="21" y1="12" x2="9" y2="12"/>
+                  </svg>
+                  Sign Out
+                </button>
+              )}
               <div className="flex gap-4 mb-6">
                 <a href={SOCIAL.instagram} target="_blank" rel="noopener noreferrer"
                   className="text-white opacity-60 hover:opacity-100 text-sm tracking-widest uppercase">

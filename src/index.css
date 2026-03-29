@@ -313,6 +313,28 @@ h1, h2, h3, h4, h5, h6 {
   border-color: var(--c-white);
 }
 
+/* Secondary button — for use on light backgrounds */
+.btn-secondary {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 14px 32px;
+  background: transparent;
+  color: var(--c-primary);
+  font-family: var(--font-body);
+  font-size: 0.875rem;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  border: 2px solid var(--c-primary);
+  border-radius: 0;
+  cursor: pointer;
+  transition: all var(--transition-base);
+  text-decoration: none;
+}
+.btn-secondary:hover {
+  background: var(--c-primary);
+  color: var(--c-white);
+}
+
 .btn-gold {
   display: inline-flex; align-items: center; gap: 8px;
   padding: 14px 32px;
