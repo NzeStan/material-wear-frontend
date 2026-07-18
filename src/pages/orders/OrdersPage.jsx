@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { Navigate, Link } from 'react-router-dom'
 import { api } from '../../services/api'
 import { useAuth } from '../../context/AuthContext'
+import { CONTACT } from '../../config/constants'
 
 // ── helpers ───────────────────────────────────────────────────────────────────
 
@@ -42,17 +43,34 @@ function OrderCard({ order }) {
   const [expanded, setExpanded] = useState(false)
   const [detail,   setDetail]   = useState(null)
   const [detailLoading, setDetailLoading] = useState(false)
+  const [receipt, setReceipt] = useState(null)
+  const [receiptLoading, setReceiptLoading] = useState(false)
 
   async function toggleExpand() {
     if (!expanded && !detail) {
       setDetailLoading(true)
       try {
-        const data = await api.get(`/order/${order.id}/`)
-        setDetail(data)
+        const [detailData, receiptData] = await Promise.all([
+          api.get(`/order/${order.id}/`),
+          api.get(`/order/${order.id}/receipt/`).catch(() => null),
+        ])
+        setDetail(detailData)
+        setReceipt(receiptData)
       } catch { /* silent — just use list data */ }
       finally { setDetailLoading(false) }
     }
     setExpanded(p => !p)
+  }
+
+  async function loadReceipt() {
+    if (receiptLoading) return
+    setReceiptLoading(true)
+    try {
+      const data = await api.get(`/order/${order.id}/receipt/`)
+      setReceipt(data)
+    } finally {
+      setReceiptLoading(false)
+    }
   }
 
   const typeColor = orderTypeColor(order.order_type)
@@ -197,7 +215,7 @@ function OrderCard({ order }) {
                     </p>
                   </div>
                   <a
-                    href={`mailto:${''}`}
+                    href={`mailto:${CONTACT.email}`}
                     className="text-xs font-semibold underline"
                     style={{ color: 'var(--c-primary)' }}
                   >
@@ -205,6 +223,50 @@ function OrderCard({ order }) {
                   </a>
                 </div>
               )}
+
+              <div className="pt-3 border-t" style={{ borderColor: 'var(--c-border)' }}>
+                <div className="flex items-center justify-between gap-3 mb-2">
+                  <p className="text-xs font-semibold" style={{ color: 'var(--c-text)' }}>
+                    Receipt Status
+                  </p>
+                  {!receipt && (
+                    <button
+                      type="button"
+                      onClick={loadReceipt}
+                      className="text-xs font-semibold"
+                      style={{ color: 'var(--c-primary)' }}
+                    >
+                      {receiptLoading ? 'Checking...' : 'Load receipt'}
+                    </button>
+                  )}
+                </div>
+                {receipt ? (
+                  <div
+                    className="rounded-lg p-3 text-xs"
+                    style={{
+                      background: receipt.receipt_available ? '#ecfdf5' : '#fffbeb',
+                      border: `1px solid ${receipt.receipt_available ? '#a7f3d0' : '#fde68a'}`,
+                    }}
+                  >
+                    <p style={{ color: receipt.receipt_available ? '#065f46' : '#92400e' }}>
+                      {receipt.receipt_available
+                        ? 'Receipt is available for this paid order.'
+                        : receipt.paid
+                          ? 'Payment is marked as successful, but receipt generation is not ready yet.'
+                          : 'Receipt becomes available after payment is confirmed.'}
+                    </p>
+                    {receipt.order?.serial_number && (
+                      <p className="mt-2" style={{ color: 'var(--c-text-muted)' }}>
+                        Reference: {receipt.order.serial_number}
+                      </p>
+                    )}
+                  </div>
+                ) : receiptLoading ? (
+                  <p className="text-xs" style={{ color: 'var(--c-text-muted)' }}>
+                    Checking receipt availability...
+                  </p>
+                ) : null}
+              </div>
             </div>
           )}
         </div>

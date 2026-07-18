@@ -67,7 +67,7 @@ function deadlineInfo(deadline) {
 }
 
 // ── Order row ──────────────────────────────────────────────────────────────────
-function OrderCard({ order, onPay, paying }) {
+function OrderCard({ order, onPay, paying, onExpand, detailLoading }) {
   const [expanded, setExpanded] = useState(false)
 
   const dl        = deadlineInfo(order.bulk_order?.payment_deadline)
@@ -82,6 +82,12 @@ function OrderCard({ order, onPay, paying }) {
     day: 'numeric', month: 'short', year: 'numeric',
   })
 
+  function handleToggle() {
+    const nextExpanded = !expanded
+    setExpanded(nextExpanded)
+    if (nextExpanded) onExpand(order.id)
+  }
+
   return (
     <div
       className="rounded-2xl overflow-hidden transition-shadow duration-200"
@@ -95,7 +101,7 @@ function OrderCard({ order, onPay, paying }) {
       <div
         className="px-5 py-4 flex items-center justify-between gap-4 cursor-pointer select-none"
         style={{ background: order.paid ? 'rgba(16,185,129,0.04)' : isExpired ? 'rgba(239,68,68,0.03)' : 'var(--c-bg-warm)', borderBottom: expanded ? '1px solid var(--c-border)' : 'none' }}
-        onClick={() => setExpanded(x => !x)}
+        onClick={handleToggle}
       >
         <div className="flex items-center gap-3 min-w-0">
           {/* Status dot */}
@@ -148,6 +154,12 @@ function OrderCard({ order, onPay, paying }) {
       {/* Expanded body */}
       {expanded && (
         <div className="px-5 py-5 space-y-5">
+          {detailLoading && (
+            <div className="flex items-center gap-2 text-sm" style={{ color: 'var(--c-text-muted)' }}>
+              <SpinnerIcon />
+              <span>Refreshing order details...</span>
+            </div>
+          )}
 
           {/* Warnings */}
           {!order.paid && isExpired && (
@@ -155,7 +167,7 @@ function OrderCard({ order, onPay, paying }) {
               style={{ background: 'rgba(239,68,68,0.07)', color: '#b91c1c', border: '1px solid rgba(239,68,68,0.2)' }}>
               <AlertIcon />
               <span>
-                This order's payment window has closed. Contact us if you still wish to pay.
+                This order&apos;s payment window has closed. Contact us if you still wish to pay.
               </span>
             </div>
           )}
@@ -183,7 +195,7 @@ function OrderCard({ order, onPay, paying }) {
               ['Full Name',    order.full_name],
               ['Email',        order.email],
               ['Size',         order.size],
-              ['Reference',    <span className="font-mono text-xs">{order.reference}</span>],
+              ['Reference',    <span key="reference-value" className="font-mono text-xs">{order.reference}</span>],
               ['Custom Text',  order.custom_name || null],
               ['Serial #',     `#${order.serial_number}`],
               ['Date Placed',  dateStr],
@@ -248,13 +260,14 @@ function OrderCard({ order, onPay, paying }) {
 //  MAIN COMPONENT
 // ══════════════════════════════════════════════════════════════════════════════
 export default function ImageMyOrders() {
-  const { isAuthenticated, loading: authLoading, user } = useAuth()
+  const { isAuthenticated, loading: authLoading } = useAuth()
   const navigate = useNavigate()
 
   const [orders, setOrders]   = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError]     = useState('')
   const [paying, setPaying]   = useState(null) // order.id being paid
+  const [loadingOrderId, setLoadingOrderId] = useState(null)
 
   // Auth guard
   useEffect(() => {
@@ -273,7 +286,7 @@ export default function ImageMyOrders() {
     ;(async () => {
       try {
         const data = await api.get('/image_bulk_orders/orders/')
-        setOrders(data)
+        setOrders(Array.isArray(data) ? data : (data?.results ?? []))
       } catch (err) {
         setError(err.message || 'Failed to load orders.')
       } finally {
@@ -292,6 +305,25 @@ export default function ImageMyOrders() {
     } catch (err) {
       setError(err.message || 'Payment initialization failed.')
       setPaying(null)
+    }
+  }
+
+  async function handleExpand(orderId) {
+    if (loadingOrderId === orderId) return
+
+    const existing = orders.find(order => order.id === orderId)
+    if (existing?.__detailLoaded) return
+
+    setLoadingOrderId(orderId)
+    try {
+      const detail = await api.get(`/image_bulk_orders/orders/${orderId}/`)
+      setOrders(prev => prev.map(order => (
+        order.id === orderId ? { ...detail, __detailLoaded: true } : order
+      )))
+    } catch (err) {
+      setError(err.message || 'Could not load this order detail.')
+    } finally {
+      setLoadingOrderId(null)
     }
   }
 
@@ -410,7 +442,14 @@ export default function ImageMyOrders() {
                 </div>
                 <div className="space-y-4">
                   {unpaidOrders.map(order => (
-                    <OrderCard key={order.id} order={order} onPay={handlePay} paying={paying} />
+                    <OrderCard
+                      key={order.id}
+                      order={order}
+                      onPay={handlePay}
+                      paying={paying}
+                      onExpand={handleExpand}
+                      detailLoading={loadingOrderId === order.id}
+                    />
                   ))}
                 </div>
               </div>
@@ -430,7 +469,14 @@ export default function ImageMyOrders() {
                 </div>
                 <div className="space-y-4">
                   {paidOrders.map(order => (
-                    <OrderCard key={order.id} order={order} onPay={handlePay} paying={paying} />
+                    <OrderCard
+                      key={order.id}
+                      order={order}
+                      onPay={handlePay}
+                      paying={paying}
+                      onExpand={handleExpand}
+                      detailLoading={loadingOrderId === order.id}
+                    />
                   ))}
                 </div>
               </div>

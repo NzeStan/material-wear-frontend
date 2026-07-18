@@ -20,6 +20,12 @@ function toLocalDatetimeStr(date = new Date()) {
   const pad = n => String(n).padStart(2, '0')
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`
 }
+function isoToLocalInput(value) {
+  if (!value) return ''
+  const date = new Date(value)
+  const offset = date.getTimezoneOffset()
+  return new Date(date.getTime() - offset * 60000).toISOString().slice(0, 16)
+}
 
 /* ─── icons ─────────────────────────────────────────────────── */
 const IconPlus = () => (
@@ -271,8 +277,305 @@ function LinkCreatedModal({ form, onClose }) {
   )
 }
 
+function EntryDetailModal({ entryId, onClose, canDelete, onDeleted }) {
+  const [entry, setEntry] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+  const [deleting, setDeleting] = useState(false)
+
+  useEffect(() => {
+    ;(async () => {
+      setLoading(true)
+      setError('')
+      try {
+        const data = await api.get(`/live_forms/api/entries/${entryId}/`)
+        setEntry(data)
+      } catch (e) {
+        setError(e.message || 'Could not load entry details.')
+      } finally {
+        setLoading(false)
+      }
+    })()
+  }, [entryId])
+
+  const handleDelete = async () => {
+    if (!confirm('Delete this live form entry permanently?')) return
+    setDeleting(true)
+    setError('')
+    try {
+      await api.delete(`/live_forms/api/entries/${entryId}/`)
+      onDeleted(entryId)
+      onClose()
+    } catch (e) {
+      setError(e.message || 'Could not delete entry.')
+      setDeleting(false)
+    }
+  }
+
+  return (
+    <div style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }} onClick={onClose}>
+      <div style={{ width: '100%', maxWidth: 520, background: 'var(--c-bg-warm)', border: '1px solid var(--c-border)', borderRadius: 16, boxShadow: '0 24px 64px rgba(0,0,0,0.3)' }} onClick={e => e.stopPropagation()}>
+        <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid var(--c-border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div>
+            <h2 style={{ margin: 0, color: 'var(--c-text)', fontSize: '1.1rem', fontWeight: 800 }}>Entry Details</h2>
+            <p style={{ margin: '0.2rem 0 0', fontSize: '0.82rem', color: 'var(--c-text-muted)' }}>Single-entry retrieve endpoint</p>
+          </div>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'var(--c-text-muted)', cursor: 'pointer', fontSize: '1.4rem' }}>×</button>
+        </div>
+        <div style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          {loading ? (
+            <div style={{ display: 'flex', justifyContent: 'center', padding: '2rem 0' }}>
+              <div style={{ width: 26, height: 26, border: '2px solid var(--c-border)', borderTopColor: 'var(--c-primary)', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+            </div>
+          ) : error ? (
+            <div style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.25)', borderRadius: 10, padding: '0.9rem 1rem', color: '#dc2626', fontSize: '0.86rem' }}>
+              {error}
+            </div>
+          ) : entry && (
+            <>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                {[
+                  ['Form', entry.live_form?.organization_name],
+                  ['Full Name', entry.full_name],
+                  ['Custom Name', entry.custom_name || '—'],
+                  ['Size', entry.size],
+                  ['Serial #', `#${entry.serial_number}`],
+                  ['Created', fmtDate(entry.created_at)],
+                ].map(([label, value]) => (
+                  <div key={label} style={{ background: 'var(--c-bg)', border: '1px solid var(--c-border)', borderRadius: 10, padding: '0.75rem 0.9rem' }}>
+                    <div style={{ fontSize: '0.68rem', fontWeight: 700, color: 'var(--c-text-muted)', letterSpacing: '0.05em', marginBottom: '0.25rem' }}>{label}</div>
+                    <div style={{ color: 'var(--c-text)', fontWeight: 700, fontSize: '0.85rem', wordBreak: 'break-word' }}>{value}</div>
+                  </div>
+                ))}
+              </div>
+              <div style={{ background: 'var(--c-bg)', border: '1px solid var(--c-border)', borderRadius: 10, padding: '0.75rem 0.9rem' }}>
+                <div style={{ fontSize: '0.68rem', fontWeight: 700, color: 'var(--c-text-muted)', letterSpacing: '0.05em', marginBottom: '0.25rem' }}>Entry ID</div>
+                <div style={{ color: 'var(--c-text)', fontWeight: 600, fontSize: '0.82rem', fontFamily: 'monospace', wordBreak: 'break-all' }}>{entry.id}</div>
+              </div>
+            </>
+          )}
+          <div style={{ display: 'flex', gap: '0.75rem' }}>
+            <button onClick={onClose} style={{ flex: 1, padding: '0.75rem', background: 'var(--c-bg)', border: '1px solid var(--c-border)', borderRadius: 10, color: 'var(--c-text)', fontWeight: 600, cursor: 'pointer' }}>
+              Close
+            </button>
+            {canDelete && (
+              <button onClick={handleDelete} disabled={deleting || loading} style={{ flex: 1, padding: '0.75rem', background: deleting ? '#fca5a5' : '#dc2626', border: 'none', borderRadius: 10, color: '#fff', fontWeight: 700, cursor: 'pointer' }}>
+                {deleting ? 'Deleting...' : 'Delete Entry'}
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function ManageFormModal({ slug, canManageEntries, onClose, onSaved, onDeleted }) {
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [deleting, setDeleting] = useState(false)
+  const [error, setError] = useState('')
+  const [form, setForm] = useState({
+    organization_name: '',
+    expires_at: '',
+    max_submissions: '',
+    custom_branding_enabled: false,
+    is_active: true,
+  })
+  const [entries, setEntries] = useState([])
+  const [entriesLoading, setEntriesLoading] = useState(false)
+  const [selectedEntryId, setSelectedEntryId] = useState(null)
+
+  useEffect(() => {
+    ;(async () => {
+      setLoading(true)
+      setError('')
+      try {
+        const data = await api.get(`/live_forms/api/forms/${slug}/`)
+        setForm({
+          organization_name: data.organization_name || '',
+          expires_at: isoToLocalInput(data.expires_at),
+          max_submissions: data.max_submissions ?? '',
+          custom_branding_enabled: !!data.custom_branding_enabled,
+          is_active: !!data.is_active,
+        })
+      } catch (e) {
+        setError(e.message || 'Could not load form details.')
+      } finally {
+        setLoading(false)
+      }
+    })()
+  }, [slug])
+
+  useEffect(() => {
+    if (!canManageEntries) return
+    ;(async () => {
+      setEntriesLoading(true)
+      try {
+        const data = await api.get(`/live_forms/api/forms/${slug}/admin_entries/`)
+        setEntries(Array.isArray(data) ? data : (data?.results || []))
+      } catch (e) {
+        setError(e.message || 'Could not load admin entries.')
+      } finally {
+        setEntriesLoading(false)
+      }
+    })()
+  }, [slug, canManageEntries])
+
+  const setField = (key, value) => setForm(prev => ({ ...prev, [key]: value }))
+
+  const handleSave = async (e) => {
+    e.preventDefault()
+    setSaving(true)
+    setError('')
+    try {
+      const payload = {
+        organization_name: form.organization_name.trim(),
+        expires_at: new Date(form.expires_at).toISOString(),
+        custom_branding_enabled: form.custom_branding_enabled,
+        is_active: form.is_active,
+        max_submissions: form.max_submissions ? parseInt(form.max_submissions, 10) : null,
+      }
+      const updated = await api.patch(`/live_forms/api/forms/${slug}/`, payload)
+      onSaved(updated)
+      onClose()
+    } catch (e) {
+      setError(e.message || 'Could not save form changes.')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const handleDelete = async () => {
+    if (!confirm('Delete this live form permanently?')) return
+    setDeleting(true)
+    setError('')
+    try {
+      await api.delete(`/live_forms/api/forms/${slug}/`)
+      onDeleted(slug)
+      onClose()
+    } catch (e) {
+      setError(e.message || 'Could not delete this form.')
+      setDeleting(false)
+    }
+  }
+
+  const handleEntryDeleted = (entryId) => {
+    setEntries(prev => prev.filter(entry => entry.id !== entryId))
+  }
+
+  return (
+    <>
+      {selectedEntryId && (
+        <EntryDetailModal
+          entryId={selectedEntryId}
+          canDelete={canManageEntries}
+          onClose={() => setSelectedEntryId(null)}
+          onDeleted={handleEntryDeleted}
+        />
+      )}
+      <div style={{ position: 'fixed', inset: 0, zIndex: 999, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }} onClick={onClose}>
+        <div style={{ background: 'var(--c-bg-warm)', border: '1px solid var(--c-border)', borderRadius: 16, width: '100%', maxWidth: 880, maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 24px 64px rgba(0,0,0,0.3)' }} onClick={e => e.stopPropagation()}>
+          <div style={{ padding: '1.5rem', borderBottom: '1px solid var(--c-border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div>
+              <h2 style={{ margin: 0, color: 'var(--c-text)', fontSize: '1.2rem', fontWeight: 800 }}>Manage Live Form</h2>
+              <p style={{ margin: '0.25rem 0 0', fontSize: '0.85rem', color: 'var(--c-text-muted)' }}>Form retrieve, update, delete, and admin entry review</p>
+            </div>
+            <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--c-text-muted)', fontSize: '1.5rem' }}>×</button>
+          </div>
+
+          <div style={{ padding: '1.5rem', display: 'grid', gridTemplateColumns: 'minmax(0, 1.1fr) minmax(0, 0.9fr)', gap: '1.25rem' }}>
+            <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              {error && (
+                <div style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.25)', borderRadius: 10, padding: '0.9rem 1rem', color: '#dc2626', fontSize: '0.85rem' }}>
+                  {error}
+                </div>
+              )}
+              {loading ? (
+                <div style={{ display: 'flex', justifyContent: 'center', padding: '3rem 0' }}>
+                  <div style={{ width: 28, height: 28, border: '2px solid var(--c-border)', borderTopColor: 'var(--c-primary)', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+                </div>
+              ) : (
+                <>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: 'var(--c-text-muted)', marginBottom: '0.4rem', letterSpacing: '0.05em' }}>ORGANISATION NAME</label>
+                    <input value={form.organization_name} onChange={e => setField('organization_name', e.target.value)} style={{ width: '100%', padding: '0.75rem 0.95rem', borderRadius: 10, border: '1.5px solid var(--c-border)', background: 'var(--c-bg)', color: 'var(--c-text)', fontSize: '0.92rem', boxSizing: 'border-box' }} />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: 'var(--c-text-muted)', marginBottom: '0.4rem', letterSpacing: '0.05em' }}>EXPIRES AT</label>
+                    <input type="datetime-local" value={form.expires_at} onChange={e => setField('expires_at', e.target.value)} style={{ width: '100%', padding: '0.75rem 0.95rem', borderRadius: 10, border: '1.5px solid var(--c-border)', background: 'var(--c-bg)', color: 'var(--c-text)', fontSize: '0.92rem', boxSizing: 'border-box' }} />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: 'var(--c-text-muted)', marginBottom: '0.4rem', letterSpacing: '0.05em' }}>MAX SUBMISSIONS</label>
+                    <input type="number" min="1" value={form.max_submissions} onChange={e => setField('max_submissions', e.target.value)} placeholder="Leave blank for unlimited" style={{ width: '100%', padding: '0.75rem 0.95rem', borderRadius: 10, border: '1.5px solid var(--c-border)', background: 'var(--c-bg)', color: 'var(--c-text)', fontSize: '0.92rem', boxSizing: 'border-box' }} />
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                    <button type="button" onClick={() => setField('custom_branding_enabled', !form.custom_branding_enabled)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.85rem 1rem', background: 'var(--c-bg)', border: '1px solid var(--c-border)', borderRadius: 10, cursor: 'pointer', color: 'var(--c-text)' }}>
+                      <span style={{ fontWeight: 600, fontSize: '0.86rem' }}>Custom Branding Names</span>
+                      <IconToggle on={form.custom_branding_enabled} />
+                    </button>
+                    <button type="button" onClick={() => setField('is_active', !form.is_active)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.85rem 1rem', background: 'var(--c-bg)', border: '1px solid var(--c-border)', borderRadius: 10, cursor: 'pointer', color: 'var(--c-text)' }}>
+                      <span style={{ fontWeight: 600, fontSize: '0.86rem' }}>Form Active</span>
+                      <IconToggle on={form.is_active} />
+                    </button>
+                  </div>
+                  <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.5rem' }}>
+                    <button type="button" onClick={handleDelete} disabled={deleting || saving} style={{ flex: 1, padding: '0.8rem', background: deleting ? '#fca5a5' : '#dc2626', border: 'none', borderRadius: 10, color: '#fff', fontWeight: 700, cursor: 'pointer' }}>
+                      {deleting ? 'Deleting...' : 'Delete Form'}
+                    </button>
+                    <button type="submit" disabled={saving || deleting} style={{ flex: 1, padding: '0.8rem', background: saving ? '#9ca3af' : 'var(--c-primary)', border: 'none', borderRadius: 10, color: '#fff', fontWeight: 700, cursor: 'pointer' }}>
+                      {saving ? 'Saving...' : 'Save Changes'}
+                    </button>
+                  </div>
+                </>
+              )}
+            </form>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+              <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--c-text-muted)', letterSpacing: '0.05em' }}>ADMIN ENTRIES</div>
+              {!canManageEntries ? (
+                <div style={{ background: 'var(--c-bg)', border: '1px solid var(--c-border)', borderRadius: 12, padding: '1rem', color: 'var(--c-text-muted)', fontSize: '0.83rem' }}>
+                  Entry review is available to staff accounts only.
+                </div>
+              ) : entriesLoading ? (
+                <div style={{ display: 'flex', justifyContent: 'center', padding: '2.5rem 0' }}>
+                  <div style={{ width: 24, height: 24, border: '2px solid var(--c-border)', borderTopColor: 'var(--c-primary)', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+                </div>
+              ) : entries.length === 0 ? (
+                <div style={{ background: 'var(--c-bg)', border: '1px solid var(--c-border)', borderRadius: 12, padding: '1rem', color: 'var(--c-text-muted)', fontSize: '0.83rem' }}>
+                  No entries submitted yet for this form.
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', maxHeight: 420, overflowY: 'auto' }}>
+                  {entries.map(entry => (
+                    <button
+                      key={entry.id}
+                      onClick={() => setSelectedEntryId(entry.id)}
+                      style={{ textAlign: 'left', background: 'var(--c-bg)', border: '1px solid var(--c-border)', borderRadius: 10, padding: '0.8rem 0.9rem', cursor: 'pointer' }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.75rem' }}>
+                        <div>
+                          <div style={{ color: 'var(--c-text)', fontWeight: 700, fontSize: '0.84rem' }}>{entry.full_name}</div>
+                          <div style={{ color: 'var(--c-text-muted)', fontSize: '0.74rem', marginTop: '0.15rem' }}>
+                            #{entry.serial_number} · {entry.size} · {fmtDate(entry.created_at)}
+                          </div>
+                        </div>
+                        <span style={{ color: 'var(--c-primary)', fontSize: '0.76rem', fontWeight: 700 }}>Open</span>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    </>
+  )
+}
+
 /* ─── form card ─────────────────────────────────────────────── */
-function FormCard({ form, isAdmin, onToggle, onDownload, onRefreshStats }) {
+function FormCard({ form, isAdmin, onToggle, onDownload, onManage }) {
   const [open,    setOpen]    = useState(false)
   const [copied,  setCopied]  = useState(false)
   const [toggling, setToggling] = useState(false)
@@ -405,6 +708,18 @@ function FormCard({ form, isAdmin, onToggle, onDownload, onRefreshStats }) {
             </div>
           )}
 
+          <div>
+            <div style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--c-text-muted)', letterSpacing: '0.06em', marginBottom: '0.75rem' }}>FORM TOOLS</div>
+            <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+              <button
+                onClick={() => onManage(form.slug)}
+                style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.55rem 1rem', background: 'var(--c-bg)', border: '1px solid var(--c-border)', borderRadius: 8, color: 'var(--c-text)', fontWeight: 700, cursor: 'pointer', fontSize: '0.8rem' }}
+              >
+                <IconExternalLink /> Manage
+              </button>
+            </div>
+          </div>
+
           {/* admin tools */}
           {isAdmin && (
             <div>
@@ -459,6 +774,8 @@ export default function LiveFormOrganizerDashboard() {
   const [showCreate, setShowCreate] = useState(false)
   const [created,    setCreated]    = useState(null) // link modal after creation
   const [filter,     setFilter]     = useState('all')
+  const [manageSlug, setManageSlug] = useState(null)
+  const [recentEntries, setRecentEntries] = useState([])
 
   const isAdmin = user?.is_staff
 
@@ -478,6 +795,19 @@ export default function LiveFormOrganizerDashboard() {
 
   useEffect(() => { if (isAuthenticated) fetchForms() }, [isAuthenticated, fetchForms])
 
+  useEffect(() => {
+    if (!isAuthenticated || !isAdmin) return
+    ;(async () => {
+      try {
+        const res = await api.get('/live_forms/api/entries/')
+        const rows = Array.isArray(res) ? res : (res.results || [])
+        setRecentEntries(rows.slice(0, 8))
+      } catch {
+        setRecentEntries([])
+      }
+    })()
+  }, [isAuthenticated, isAdmin, forms.length])
+
   /* create */
   const handleCreate = (newForm) => {
     setForms(prev => [newForm, ...prev])
@@ -493,14 +823,22 @@ export default function LiveFormOrganizerDashboard() {
     } catch { /* silent */ }
   }
 
+  const handleSavedForm = (updated) => {
+    setForms(prev => prev.map(form => (form.slug === updated.slug ? { ...form, ...updated } : form)))
+  }
+
+  const handleDeletedForm = (slug) => {
+    setForms(prev => prev.filter(form => form.slug !== slug))
+    setRecentEntries(prev => prev.filter(entry => entry.live_form?.slug !== slug))
+  }
+
   /* download */
   const handleDownload = async (form, type) => {
     const BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api'
-    const token    = localStorage.getItem('mw_auth_token')
     const extMap   = { pdf: 'pdf', word: 'docx', excel: 'xlsx' }
     try {
       const res = await fetch(`${BASE_URL}/live_forms/api/forms/${form.slug}/download_${type}/`, {
-        headers: token ? { Authorization: `Token ${token}` } : {},
+        headers: api.getAuthHeader(),
       })
       if (!res.ok) throw new Error('Download failed')
       const blob = await res.blob()
@@ -542,6 +880,15 @@ export default function LiveFormOrganizerDashboard() {
       {/* modals */}
       {showCreate && <CreateFormModal onClose={() => setShowCreate(false)} onCreate={handleCreate} />}
       {created    && <LinkCreatedModal form={created} onClose={() => setCreated(null)} />}
+      {manageSlug && (
+        <ManageFormModal
+          slug={manageSlug}
+          canManageEntries={!!isAdmin}
+          onClose={() => setManageSlug(null)}
+          onSaved={handleSavedForm}
+          onDeleted={handleDeletedForm}
+        />
+      )}
 
       {/* hero */}
       <div style={{ background: 'linear-gradient(135deg, var(--c-primary) 0%, #065f46 60%, #047857 100%)', padding: '3rem 1.5rem 4rem' }}>
@@ -608,6 +955,28 @@ export default function LiveFormOrganizerDashboard() {
           </div>
         )}
 
+        {isAdmin && recentEntries.length > 0 && (
+          <div style={{ background: 'var(--c-bg-warm)', border: '1px solid var(--c-border)', borderRadius: 14, padding: '1.25rem 1.35rem', marginBottom: '1.25rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', marginBottom: '0.85rem' }}>
+              <div style={{ fontWeight: 700, color: 'var(--c-text)' }}>Recent Live Form Entries</div>
+              <div style={{ fontSize: '0.76rem', color: 'var(--c-text-muted)' }}>Global staff entry list endpoint</div>
+            </div>
+            <div style={{ display: 'grid', gap: '0.5rem' }}>
+              {recentEntries.map(entry => (
+                <div key={entry.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.75rem', padding: '0.75rem 0.85rem', background: 'var(--c-bg)', border: '1px solid var(--c-border)', borderRadius: 10 }}>
+                  <div>
+                    <div style={{ color: 'var(--c-text)', fontWeight: 700, fontSize: '0.84rem' }}>{entry.full_name}</div>
+                    <div style={{ color: 'var(--c-text-muted)', fontSize: '0.74rem', marginTop: '0.15rem' }}>
+                      {entry.live_form?.organization_name} · #{entry.serial_number} · {entry.size}
+                    </div>
+                  </div>
+                  <div style={{ color: 'var(--c-text-muted)', fontSize: '0.74rem' }}>{fmtDate(entry.created_at)}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* states */}
         {loading ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
@@ -647,6 +1016,7 @@ export default function LiveFormOrganizerDashboard() {
                 isAdmin={!!isAdmin}
                 onToggle={handleToggle}
                 onDownload={handleDownload}
+                onManage={setManageSlug}
               />
             ))}
           </div>

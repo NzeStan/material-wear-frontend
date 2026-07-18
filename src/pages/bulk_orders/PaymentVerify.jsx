@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useSearchParams, Link } from 'react-router-dom'
 import { api } from '../../services/api'
 import { CONTACT } from '../../config/constants'
+const RECENT_BULK_ORDER_IDS_KEY = 'mw_recent_bulk_order_ids'
 
 // ── Icons ──────────────────────────────────────────────────────────────────────
 const SpinnerIcon = () => (
@@ -65,6 +66,14 @@ function InfoRow({ label, value }) {
   )
 }
 
+function rememberBulkOrderId(orderId) {
+  if (!orderId || typeof window === 'undefined') return
+
+  const existing = JSON.parse(window.localStorage.getItem(RECENT_BULK_ORDER_IDS_KEY) || '[]')
+  const next = [orderId, ...existing.filter(id => id !== orderId)].slice(0, 20)
+  window.localStorage.setItem(RECENT_BULK_ORDER_IDS_KEY, JSON.stringify(next))
+}
+
 // ══════════════════════════════════════════════════════════════════════════════
 //  MAIN COMPONENT
 // ══════════════════════════════════════════════════════════════════════════════
@@ -112,6 +121,7 @@ export default function PaymentVerify() {
       const orderUuid = parts.slice(6, 11).join('-')
 
       const data = await api.get(`/bulk_orders/orders/${orderUuid}/verify_payment/`)
+      rememberBulkOrderId(data.order_id)
       setOrderData(data)
       setStatus(data.paid ? 'success' : 'pending')
     } catch (err) {

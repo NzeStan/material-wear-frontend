@@ -24,7 +24,7 @@ const TYPE_LABEL = {
   'church':    'Church Item',
 }
 
-const SIZES = ['XS', 'S', 'M', 'L', 'XL', 'XXL', 'XXXL']
+const FALLBACK_SIZES = ['XS', 'S', 'M', 'L', 'XL', 'XXL', 'XXXL']
 
 function fmt(price) {
   return `₦${Number(price).toLocaleString('en-NG', { minimumFractionDigits: 2 })}`
@@ -32,10 +32,10 @@ function fmt(price) {
 
 // ── sub-components ────────────────────────────────────────────────────────────
 
-function SizeGrid({ selected, onSelect }) {
+function SizeGrid({ options, selected, onSelect }) {
   return (
     <div className="flex flex-wrap gap-2">
-      {SIZES.map(s => (
+      {options.map(s => (
         <button
           key={s}
           type="button"
@@ -89,6 +89,8 @@ export default function ProductDetail() {
   const [activeImg,  setActiveImg]  = useState(0)
   const [qty,        setQty]        = useState(1)
   const [size,       setSize]       = useState('')
+  const [sizeOptions, setSizeOptions] = useState(FALLBACK_SIZES)
+  const [churchOptions, setChurchOptions] = useState([])
   const [callUpNo,   setCallUpNo]   = useState('')
   const [customName, setCustomName] = useState('')
   const [adding,     setAdding]     = useState(false)
@@ -106,8 +108,27 @@ export default function ProductDetail() {
     const endpoint = TYPE_ENDPOINT[type]
     if (!endpoint) { setError('Unknown product type'); setLoading(false); return }
     try {
-      const data = await api.get(`${endpoint}${id}/`)
+      const [data, sizeData, churchesData] = await Promise.all([
+        api.get(`${endpoint}${id}/`),
+        api.get('/products/dropdowns/sizes/').catch(() => null),
+        type === 'church' ? api.get('/products/dropdowns/churches/').catch(() => null) : Promise.resolve(null),
+      ])
       setProduct(data)
+      const derivedSizes = data?.type === 'vest'
+        ? sizeData?.vest_sizes
+        : type === 'church'
+          ? sizeData?.church_sizes
+          : null
+      if (Array.isArray(derivedSizes) && derivedSizes.length > 0) {
+        setSizeOptions(derivedSizes.map(item => item.value))
+      } else {
+        setSizeOptions(FALLBACK_SIZES)
+      }
+      if (Array.isArray(churchesData?.churches)) {
+        setChurchOptions(churchesData.churches)
+      } else {
+        setChurchOptions([])
+      }
       document.title = `${data.name} — Material Wear Limited`
     } catch (e) {
       setError(e?.data?.detail || e?.message || 'Product not found')
@@ -282,6 +303,12 @@ export default function ProductDetail() {
               </p>
             )}
 
+            {type === 'church' && churchOptions.length > 0 && (
+              <p className="text-xs mb-5" style={{ color: 'var(--c-text-muted)' }}>
+                Church brands available in store: {churchOptions.map(option => option.display).join(', ')}.
+              </p>
+            )}
+
             {/* ── Kakhi note ─────────────────────────────────── */}
             {isKakhi && (
               <div className="flex items-start gap-2 p-3 rounded mb-5"
@@ -296,7 +323,7 @@ export default function ProductDetail() {
                   This item is <strong>custom-fitted</strong> to your body measurements.{' '}
                   <Link to="/measurements" style={{ color: 'var(--c-primary)' }}
                     className="underline">Add your measurements</Link>{' '}
-                  if you haven't already.
+                  if you haven&apos;t already.
                 </p>
               </div>
             )}
@@ -319,7 +346,7 @@ export default function ProductDetail() {
                 <p className="text-sm font-semibold mb-2" style={{ color: 'var(--c-text)' }}>
                   Size <span style={{ color: '#DC2626' }}>*</span>
                 </p>
-                <SizeGrid selected={size} onSelect={setSize} />
+                <SizeGrid options={sizeOptions} selected={size} onSelect={setSize} />
               </div>
             )}
 

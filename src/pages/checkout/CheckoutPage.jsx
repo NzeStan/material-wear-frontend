@@ -74,7 +74,7 @@ const ChurchIcon = () => (
 export default function CheckoutPage() {
   const navigate = useNavigate()
   const { isAuthenticated, loading: authLoading, user } = useAuth()
-  const { cart, cartLoading, fetchCart } = useCart()
+  const { cart, cartLoading, refreshCartState, summary } = useCart()
 
   const [form, setForm] = useState({
     first_name:       '',
@@ -93,12 +93,14 @@ export default function CheckoutPage() {
   const [submitting,  setSubmitting]  = useState(false)
   const [submitError, setSubmitError] = useState(null)
   const [states,      setStates]      = useState([])
+  const [sizeOptions, setSizeOptions] = useState({ vest_sizes: [], church_sizes: [] })
+  const [churchOptions, setChurchOptions] = useState([])
   const [lgas,        setLgas]        = useState([])
   const [deliveryLgas, setDeliveryLgas] = useState([])
 
   useEffect(() => {
     document.title = 'Checkout — Material Wear Limited'
-    fetchCart()
+    refreshCartState()
     loadStates()
   }, []) // eslint-disable-line
 
@@ -115,8 +117,13 @@ export default function CheckoutPage() {
 
   async function loadStates() {
     try {
-      const data = await api.get('/products/dropdowns/all/')
-      setStates(data.states || [])
+      const [statesData, allData] = await Promise.all([
+        api.get('/products/dropdowns/states/'),
+        api.get('/products/dropdowns/all/'),
+      ])
+      setStates(statesData.states || [])
+      setSizeOptions(allData.sizes || { vest_sizes: [], church_sizes: [] })
+      setChurchOptions(allData.churches || [])
     } catch { /* silent */ }
   }
 
@@ -124,7 +131,7 @@ export default function CheckoutPage() {
   useEffect(() => {
     if (!form.state) { setLgas([]); return }
     api.get(`/products/dropdowns/lgas/?state=${encodeURIComponent(form.state)}`)
-      .then(data => setLgas(Array.isArray(data) ? data : []))
+      .then(data => setLgas(data?.lgas || []))
       .catch(() => setLgas([]))
   }, [form.state])
 
@@ -132,11 +139,33 @@ export default function CheckoutPage() {
   useEffect(() => {
     if (form.pickup_on_camp || !form.delivery_state) { setDeliveryLgas([]); return }
     api.get(`/products/dropdowns/lgas/?state=${encodeURIComponent(form.delivery_state)}`)
-      .then(data => setDeliveryLgas(Array.isArray(data) ? data : []))
+      .then(data => setDeliveryLgas(data?.lgas || []))
       .catch(() => setDeliveryLgas([]))
   }, [form.delivery_state, form.pickup_on_camp])
 
   const items      = cart?.items || []
+  const summaryCount = Number(summary?.count ?? 0)
+  const isCartSyncing = cartLoading || (summaryCount > 0 && items.length === 0)
+  const vestSizeOptions = (sizeOptions.vest_sizes || []).map(size => ({
+    value: typeof size === 'string' ? size : size?.value,
+    label: typeof size === 'string' ? size : (size?.display || size?.value),
+  })).filter(option => option.value)
+  const churchSizeOptions = (sizeOptions.church_sizes || []).map(size => ({
+    value: typeof size === 'string' ? size : size?.value,
+    label: typeof size === 'string' ? size : (size?.display || size?.value),
+  })).filter(option => option.value)
+  const stateOptions = states.map(state => ({
+    value: typeof state === 'string' ? state : state?.value,
+    label: typeof state === 'string' ? state : (state?.display || state?.value),
+  })).filter(option => option.value)
+  const lgaOptions = lgas.map(lga => ({
+    value: typeof lga === 'string' ? lga : lga?.value,
+    label: typeof lga === 'string' ? lga : (lga?.display || lga?.value),
+  })).filter(option => option.value)
+  const deliveryLgaOptions = deliveryLgas.map(lga => ({
+    value: typeof lga === 'string' ? lga : lga?.value,
+    label: typeof lga === 'string' ? lga : (lga?.display || lga?.value),
+  })).filter(option => option.value)
   const hasNyscKit = items.some(i => i.product_type === 'nysc_kit')
   const hasChurch  = items.some(i => i.product_type === 'church')
 
@@ -224,6 +253,33 @@ export default function CheckoutPage() {
   if (authLoading) return null
   if (!isAuthenticated) return <Navigate to="/login" replace />
 
+  if (isCartSyncing) {
+    return (
+      <main className="flex-1 flex items-center justify-center py-20 px-4" style={{ background: 'var(--c-bg)' }}>
+        <div className="text-center max-w-sm">
+          <div
+            style={{
+              width: 40,
+              height: 40,
+              margin: '0 auto 16px',
+              border: '3px solid var(--c-border)',
+              borderTopColor: 'var(--c-primary)',
+              borderRadius: '50%',
+              animation: 'spin 0.7s linear infinite',
+            }}
+          />
+          <h2 className="font-display text-2xl mb-3" style={{ color: 'var(--c-primary)' }}>Syncing your cart</h2>
+          <p className="text-sm mb-5" style={{ color: 'var(--c-text-muted)' }}>
+            We&apos;re confirming your latest cart items before checkout.
+          </p>
+          <button type="button" onClick={refreshCartState} className="btn-secondary">
+            Refresh Cart
+          </button>
+        </div>
+      </main>
+    )
+  }
+
   if (!cartLoading && items.length === 0) {
     return (
       <main className="flex-1 flex items-center justify-center py-20 px-4" style={{ background: 'var(--c-bg)' }}>
@@ -298,15 +354,19 @@ export default function CheckoutPage() {
                         <select className="form-input w-full text-sm" value={form.state}
                           onChange={e => { setField('state', e.target.value); setField('local_government', '') }}>
                           <option value="">Select state…</option>
-                          {states.map(s => <option key={s} value={s}>{s}</option>)}
+                          {stateOptions.map(option => (
+                            <option key={option.value} value={option.value}>{option.label}</option>
+                          ))}
                         </select>
                       </Field>
                       <Field label="Local Government Area" required error={errors.local_government}>
                         <select className="form-input w-full text-sm" value={form.local_government}
                           onChange={e => setField('local_government', e.target.value)}
-                          disabled={!form.state || lgas.length === 0}>
+                          disabled={!form.state || lgaOptions.length === 0}>
                           <option value="">Select LGA…</option>
-                          {lgas.map(l => <option key={l} value={l}>{l}</option>)}
+                          {lgaOptions.map(option => (
+                            <option key={option.value} value={option.value}>{option.label}</option>
+                          ))}
                         </select>
                       </Field>
                     </div>
@@ -347,17 +407,72 @@ export default function CheckoutPage() {
                           <select className="form-input w-full text-sm" value={form.delivery_state}
                             onChange={e => { setField('delivery_state', e.target.value); setField('delivery_lga', '') }}>
                             <option value="">Select state…</option>
-                            {states.map(s => <option key={s} value={s}>{s}</option>)}
+                            {stateOptions.map(option => (
+                              <option key={option.value} value={option.value}>{option.label}</option>
+                            ))}
                           </select>
                         </Field>
                         <Field label="Delivery LGA" required error={errors.delivery_lga}>
                           <select className="form-input w-full text-sm" value={form.delivery_lga}
                             onChange={e => setField('delivery_lga', e.target.value)}
-                            disabled={!form.delivery_state || deliveryLgas.length === 0}>
-                            <option value="">Select LGA…</option>
-                            {deliveryLgas.map(l => <option key={l} value={l}>{l}</option>)}
-                          </select>
-                        </Field>
+                            disabled={!form.delivery_state || deliveryLgaOptions.length === 0}>
+                          <option value="">Select LGA…</option>
+                          {deliveryLgaOptions.map(option => (
+                            <option key={option.value} value={option.value}>{option.label}</option>
+                          ))}
+                        </select>
+                      </Field>
+                      </div>
+                    )}
+                  </div>
+                </SectionCard>
+              )}
+
+              {(vestSizeOptions.length > 0 || churchSizeOptions.length > 0 || churchOptions.length > 0) && (
+                <SectionCard
+                  icon={<ChurchIcon />}
+                  title="Store Options"
+                  subtitle="Helpful reference from the live product dropdown endpoints"
+                >
+                  <div className="space-y-4 text-xs">
+                    {vestSizeOptions.length > 0 && (
+                      <div>
+                        <p className="font-semibold mb-2" style={{ color: 'var(--c-text)' }}>Vest sizes</p>
+                        <div className="flex flex-wrap gap-2">
+                          {vestSizeOptions.map(option => (
+                            <span
+                              key={option.value}
+                              className="px-2.5 py-1 rounded-full"
+                              style={{ background: '#f0fdf4', color: '#166534', border: '1px solid #bbf7d0' }}
+                            >
+                              {option.label}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    {churchSizeOptions.length > 0 && (
+                      <div>
+                        <p className="font-semibold mb-2" style={{ color: 'var(--c-text)' }}>Church sizes</p>
+                        <div className="flex flex-wrap gap-2">
+                          {churchSizeOptions.map(option => (
+                            <span
+                              key={option.value}
+                              className="px-2.5 py-1 rounded-full"
+                              style={{ background: '#eff6ff', color: '#1d4ed8', border: '1px solid #bfdbfe' }}
+                            >
+                              {option.label}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    {churchOptions.length > 0 && (
+                      <div>
+                        <p className="font-semibold mb-2" style={{ color: 'var(--c-text)' }}>Supported church brands</p>
+                        <p style={{ color: 'var(--c-text-muted)' }}>
+                          {churchOptions.map(option => option.display || option.value).join(', ')}
+                        </p>
                       </div>
                     )}
                   </div>
@@ -394,16 +509,16 @@ export default function CheckoutPage() {
                   <div className="space-y-2 text-sm mb-5">
                     <div className="flex justify-between">
                       <span style={{ color: 'var(--c-text-muted)' }}>Subtotal</span>
-                      <span style={{ color: 'var(--c-text)' }}>{fmt(cart?.subtotal)}</span>
+                      <span style={{ color: 'var(--c-text)' }}>{fmt(summary?.subtotal ?? cart?.subtotal)}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span style={{ color: 'var(--c-text-muted)' }}>VAT (15%)</span>
-                      <span style={{ color: 'var(--c-text)' }}>{fmt(cart?.vat_amount)}</span>
+                      <span style={{ color: 'var(--c-text-muted)' }}>VAT ({summary?.vat_rate ?? 15}%)</span>
+                      <span style={{ color: 'var(--c-text)' }}>{fmt(summary?.vat_amount ?? cart?.vat_amount)}</span>
                     </div>
                     <div className="flex justify-between font-bold text-base pt-2 border-t"
                       style={{ borderColor: 'var(--c-border)' }}>
                       <span style={{ color: 'var(--c-text)' }}>Total</span>
-                      <span style={{ color: 'var(--c-primary)' }}>{fmt(cart?.total_cost)}</span>
+                      <span style={{ color: 'var(--c-primary)' }}>{fmt(summary?.total ?? cart?.total_cost)}</span>
                     </div>
                   </div>
 

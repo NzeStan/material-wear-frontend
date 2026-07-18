@@ -7,7 +7,7 @@ import { useAuth } from '../../context/AuthContext'
 function fmt(val) {
   const n = parseFloat(val)
   if (isNaN(n)) return '—'
-  return 'GH₵ ' + n.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',')
+  return '₦ ' + n.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',')
 }
 function fmtDate(str) {
   if (!str) return '—'
@@ -296,9 +296,8 @@ export default function ExcelMyOrders() {
   const handleDownload = async (order) => {
     try {
       const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
-      const token    = localStorage.getItem('mw_auth_token')
       const res = await fetch(`${BASE_URL}/api/excel-bulk-orders/${order.id}/download-template/`, {
-        headers: token ? { Authorization: `Token ${token}` } : {},
+        headers: api.getAuthHeader(),
       })
       if (!res.ok) throw new Error('Download failed')
       const blob = await res.blob()
@@ -451,7 +450,6 @@ export default function ExcelMyOrders() {
                 { s: 'processing', desc: 'Payment received, orders being created' },
                 { s: 'completed',  desc: 'All done! Orders created successfully' },
               ].map(({ s, desc }) => {
-                const m = STATUS_META[s] || STATUS_META['pending']
                 return (
                   <div key={s} style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
                     <StatusBadge status={s} />

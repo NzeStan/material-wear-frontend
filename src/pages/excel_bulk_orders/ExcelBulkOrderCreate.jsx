@@ -28,11 +28,6 @@ const ExcelIcon = () => (
     <polyline points="10 9 9 9 8 9"/>
   </svg>
 )
-const CheckIcon = ({ size = 16 }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-    <polyline points="20 6 9 17 4 12"/>
-  </svg>
-)
 const UsersIcon = () => (
   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
     <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
@@ -343,7 +338,7 @@ export default function ExcelBulkOrderCreate() {
                         Include Custom Name Column
                       </p>
                       <p className="text-xs mt-0.5" style={{ color: 'var(--c-text-muted)' }}>
-                        Add a "Custom Name" column to the template for printing/embroidery text
+                        Add a &quot;Custom Name&quot; column to the template for printing/embroidery text
                       </p>
                     </div>
                     <div
@@ -434,7 +429,7 @@ export default function ExcelBulkOrderCreate() {
             <div className="rounded-2xl p-5" style={{ border: '1px solid var(--c-border)', background: '#fff' }}>
               <p className="text-sm font-semibold mb-1" style={{ color: 'var(--c-text)' }}>Returning coordinator?</p>
               <p className="text-xs mb-3" style={{ color: 'var(--c-text-muted)' }}>
-                If you've already started an order, you can pick up where you left off.
+                If you&apos;ve already started an order, you can pick up where you left off.
               </p>
               <div className="flex gap-2">
                 <Link to="/excel-my-orders"

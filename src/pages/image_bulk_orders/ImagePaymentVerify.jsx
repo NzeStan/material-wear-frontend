@@ -179,6 +179,7 @@ export default function ImagePaymentVerify() {
             <InfoRow label="Reference"    value={<span className="font-mono font-bold">{order.reference}</span>} />
             <InfoRow label="Organisation" value={order.organization} />
             <InfoRow label="Name"         value={order.full_name} />
+            <InfoRow label="Size"         value={order.size} />
             <InfoRow label="Status"       value={<span style={{ color: '#f59e0b', fontWeight: 600 }}>Pending</span>} />
           </div>
         )}
@@ -314,6 +315,13 @@ export default function ImagePaymentVerify() {
             <InfoRow label="Organisation"      value={order?.organization} />
             <InfoRow label="Name"              value={order?.full_name} />
             <InfoRow label="Email"             value={order?.email} />
+            <InfoRow label="Size"              value={order?.size} />
+            {order?.custom_name && (
+              <InfoRow label="Custom Text"     value={order.custom_name} />
+            )}
+            {order?.coupon_code && (
+              <InfoRow label="Coupon Code"     value={<span className="font-mono">{order.coupon_code}</span>} />
+            )}
             <InfoRow label="Image Uploaded"    value={
               order?.has_image
                 ? <span style={{ color: '#10b981', fontWeight: 600 }}>Yes</span>

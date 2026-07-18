@@ -1,8 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import { api } from '../../services/api'
-import { CONTACT } from '../../config/constants'
 
 // ── Icons ──────────────────────────────────────────────────────────────────────
 const SpinnerIcon = ({ size = 18 }) => (
@@ -55,16 +54,16 @@ const DownloadIcon = ({ size = 14 }) => (
     <polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
   </svg>
 )
-const BarChartIcon = () => (
-  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/>
-    <line x1="6" y1="20" x2="6" y2="14"/><line x1="2" y1="20" x2="22" y2="20"/>
-  </svg>
-)
 const TagIcon = () => (
   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
     <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/>
     <line x1="7" y1="7" x2="7.01" y2="7"/>
+  </svg>
+)
+const UsersIcon = ({ size = 14 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
+    <path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
   </svg>
 )
 const XIcon = () => (
@@ -83,6 +82,7 @@ const ExternalIcon = () => (
     <polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>
   </svg>
 )
+const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api'
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 function useCopy() {
@@ -128,6 +128,12 @@ function toLocalDatetimeInput(iso) {
   const d = new Date(iso)
   const pad = n => String(n).padStart(2, '0')
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
+}
+
+function isOrderExpired(order) {
+  if (typeof order?.is_expired === 'boolean') return order.is_expired
+  if (!order?.payment_deadline) return false
+  return new Date(order.payment_deadline).getTime() <= Date.now()
 }
 
 // ── Form field ─────────────────────────────────────────────────────────────────
@@ -452,9 +458,9 @@ function LinkCreatedModal({ order, onClose }) {
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
-//  COUPON MODAL (admin only)
+//  COUPON MODAL
 // ══════════════════════════════════════════════════════════════════════════════
-function CouponModal({ order, onClose }) {
+function CouponModal({ order, onClose, onGenerated }) {
   const [count,     setCount]     = useState(50)
   const [loading,   setLoading]   = useState(false)
   const [result,    setResult]    = useState(null)
@@ -466,6 +472,7 @@ function CouponModal({ order, onClose }) {
     try {
       const data = await api.post(`/bulk_orders/links/${order.slug}/generate_coupons/`, { count })
       setResult(data)
+      await onGenerated?.(data)
     } catch (err) {
       setError(err.message || 'Failed to generate coupons.')
     } finally {
@@ -537,27 +544,218 @@ function CouponModal({ order, onClose }) {
   )
 }
 
+function ManageOrderModal({ slug, onClose, onSaved, onDeleted }) {
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [deleting, setDeleting] = useState(false)
+  const [error, setError] = useState('')
+  const [form, setForm] = useState({
+    organization_name: '',
+    price_per_item: '',
+    payment_deadline: '',
+    custom_branding_enabled: false,
+  })
+
+  useEffect(() => {
+    ;(async () => {
+      setLoading(true)
+      setError('')
+      try {
+        const data = await api.get(`/bulk_orders/links/${slug}/`)
+        setForm({
+          organization_name: data.organization_name || '',
+          price_per_item: data.price_per_item ?? '',
+          payment_deadline: toLocalDatetimeInput(data.payment_deadline),
+          custom_branding_enabled: !!data.custom_branding_enabled,
+        })
+      } catch (err) {
+        setError(err.message || 'Could not load bulk order details.')
+      } finally {
+        setLoading(false)
+      }
+    })()
+  }, [slug])
+
+  function setField(key, value) {
+    setForm(prev => ({ ...prev, [key]: value }))
+  }
+
+  async function handleSave(e) {
+    e.preventDefault()
+    setSaving(true)
+    setError('')
+    try {
+      const payload = {
+        organization_name: form.organization_name,
+        price_per_item: parseFloat(form.price_per_item),
+        payment_deadline: new Date(form.payment_deadline).toISOString(),
+        custom_branding_enabled: form.custom_branding_enabled,
+      }
+      const data = await api.patch(`/bulk_orders/links/${slug}/`, payload)
+      onSaved(data)
+      onClose()
+    } catch (err) {
+      setError(err.message || 'Could not save changes.')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  async function handleDelete() {
+    if (!confirm('Delete this bulk order link permanently?')) return
+    setDeleting(true)
+    setError('')
+    try {
+      await api.delete(`/bulk_orders/links/${slug}/`)
+      onDeleted(slug)
+      onClose()
+    } catch (err) {
+      setError(err.message || 'Could not delete bulk order.')
+      setDeleting(false)
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      style={{ background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(4px)' }}
+      onClick={e => { if (e.target === e.currentTarget) onClose() }}>
+      <div className="w-full max-w-lg rounded-2xl overflow-hidden"
+        style={{ background: '#fff', boxShadow: '0 24px 80px rgba(0,0,0,0.2)' }}>
+        <div className="px-7 pt-7 pb-5 flex items-center justify-between"
+          style={{ borderBottom: '1px solid var(--c-border)', background: 'var(--c-bg-warm)' }}>
+          <div>
+            <h2 className="font-display text-2xl" style={{ color: 'var(--c-primary)' }}>Manage Bulk Order</h2>
+            <p className="text-sm mt-0.5" style={{ color: 'var(--c-text-muted)' }}>
+              Update settings or remove this order link
+            </p>
+          </div>
+          <button onClick={onClose} className="w-9 h-9 rounded-xl flex items-center justify-center"
+            style={{ color: 'var(--c-text-muted)', border: '1px solid var(--c-border)' }}>
+            <XIcon />
+          </button>
+        </div>
+
+        <div className="px-7 py-6">
+          {loading ? (
+            <div className="flex items-center gap-2 text-sm" style={{ color: 'var(--c-text-muted)' }}>
+              <SpinnerIcon size={16} /><span>Loading details...</span>
+            </div>
+          ) : (
+            <form onSubmit={handleSave} className="space-y-5">
+              {error && (
+                <div className="flex items-start gap-2 p-3 rounded-xl text-sm"
+                  style={{ background: 'rgba(239,68,68,0.08)', color: '#dc2626', border: '1px solid rgba(239,68,68,0.2)' }}>
+                  <AlertIcon /><span>{error}</span>
+                </div>
+              )}
+
+              <FormField label="Organisation / Group Name" required>
+                <input
+                  type="text"
+                  value={form.organization_name}
+                  onChange={e => setField('organization_name', e.target.value)}
+                  style={inputStyle(false)}
+                />
+              </FormField>
+
+              <FormField label="Price Per Item (₦)" required>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={form.price_per_item}
+                  onChange={e => setField('price_per_item', e.target.value)}
+                  style={inputStyle(false)}
+                />
+              </FormField>
+
+              <FormField label="Payment Deadline" required>
+                <input
+                  type="datetime-local"
+                  value={form.payment_deadline}
+                  onChange={e => setField('payment_deadline', e.target.value)}
+                  style={inputStyle(false)}
+                />
+              </FormField>
+
+              <div className="flex items-start gap-4 p-4 rounded-xl" style={{ background: 'var(--c-bg)', border: '1.5px solid var(--c-border)' }}>
+                <button
+                  type="button"
+                  onClick={() => setField('custom_branding_enabled', !form.custom_branding_enabled)}
+                  className="flex-shrink-0 w-11 h-6 rounded-full relative mt-0.5"
+                  style={{ background: form.custom_branding_enabled ? 'var(--c-primary)' : 'var(--c-border)' }}
+                >
+                  <span
+                    className="absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform duration-200"
+                    style={{ transform: form.custom_branding_enabled ? 'translateX(20px)' : 'translateX(0)' }}
+                  />
+                </button>
+                <div>
+                  <p className="text-sm font-medium" style={{ color: 'var(--c-text)' }}>Custom branding enabled</p>
+                  <p className="text-xs mt-0.5" style={{ color: 'var(--c-text-muted)' }}>
+                    When enabled, members will supply a custom text value with their order.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex gap-3 pt-2">
+                <button type="button" onClick={handleDelete} disabled={deleting || saving}
+                  className="flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-semibold"
+                  style={{ background: 'rgba(239,68,68,0.08)', color: '#dc2626', border: '1px solid rgba(239,68,68,0.2)' }}>
+                  {deleting ? <SpinnerIcon size={14} /> : <AlertIcon size={14} />}
+                  <span>{deleting ? 'Deleting...' : 'Delete Link'}</span>
+                </button>
+                <button type="submit" disabled={saving || deleting}
+                  className="btn-primary flex-1 flex items-center justify-center gap-2 py-3">
+                  {saving ? <><SpinnerIcon size={15} /><span>Saving...</span></> : <><CheckIcon /><span>Save Changes</span></>}
+                </button>
+              </div>
+            </form>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ══════════════════════════════════════════════════════════════════════════════
 //  ORDER CARD
 // ══════════════════════════════════════════════════════════════════════════════
-function OrderLinkCard({ order, isAdmin, onRefresh }) {
+function OrderLinkCard({ order, isAdmin, onRefresh, onDeleted }) {
   const { copiedId, copy } = useCopy()
   const [expanded,     setExpanded]     = useState(false)
   const [stats,        setStats]        = useState(null)
+  const [analytics,    setAnalytics]    = useState(null)
+  const [coupons,      setCoupons]      = useState([])
+  const [couponCheck,  setCouponCheck]  = useState({})
   const [statsLoading, setStatsLoading] = useState(false)
   const [couponModal,  setCouponModal]  = useState(false)
+  const [manageModal,  setManageModal]  = useState(false)
   const [downloading,  setDownloading]  = useState({})
 
   const shareableUrl = `${window.location.origin}/bulk-order/${order.slug}`
-  const isExpired    = order.is_expired
+  const isExpired    = isOrderExpired(order)
 
-  async function loadStats() {
-    if (stats) { setExpanded(v => !v); return }
+  async function loadStats({ force = false } = {}) {
+    if (stats && !force) { setExpanded(v => !v); return }
     setStatsLoading(true)
     setExpanded(true)
     try {
-      const data = await api.get(`/bulk_orders/links/${order.slug}/stats/`)
-      setStats(data)
+      const requests = [
+        api.get(`/bulk_orders/links/${order.slug}/stats/`),
+        api.get(`/bulk_orders/links/${order.slug}/analytics/`),
+      ]
+      if (isAdmin) {
+        requests.push(api.get(`/bulk_orders/coupons/?bulk_order_slug=${order.slug}`))
+      }
+
+      const [statsData, analyticsData, couponsData] = await Promise.allSettled(requests)
+      if (statsData.status === 'fulfilled') setStats(statsData.value)
+      if (analyticsData.status === 'fulfilled') setAnalytics(analyticsData.value)
+      if (isAdmin && couponsData?.status === 'fulfilled') {
+        const list = Array.isArray(couponsData.value) ? couponsData.value : (couponsData.value?.results ?? [])
+        setCoupons(list)
+      }
     } catch {
       // Stats failed silently — still show expanded with partial info
     } finally {
@@ -570,6 +768,14 @@ function OrderLinkCard({ order, isAdmin, onRefresh }) {
     else setExpanded(false)
   }
 
+  async function handleCouponsGenerated() {
+    setStats(null)
+    setAnalytics(null)
+    setCoupons([])
+    await loadStats({ force: true })
+    onRefresh?.()
+  }
+
   async function download(type) {
     setDownloading(d => ({ ...d, [type]: true }))
     try {
@@ -579,9 +785,8 @@ function OrderLinkCard({ order, isAdmin, onRefresh }) {
         excel: `/bulk_orders/links/${order.slug}/generate_size_summary/`,
       }
       // Direct browser download via anchor
-      const token = localStorage.getItem('mw_auth_token')
       const resp  = await fetch(`${import.meta.env.VITE_API_BASE_URL || '/api'}${endpoints[type]}`, {
-        headers: token ? { Authorization: `Token ${token}` } : {},
+        headers: api.getAuthHeader(),
       })
       if (!resp.ok) throw new Error('Download failed')
       const blob = await resp.blob()
@@ -601,6 +806,16 @@ function OrderLinkCard({ order, isAdmin, onRefresh }) {
     }
   }
 
+  async function validateCoupon(coupon) {
+    setCouponCheck(prev => ({ ...prev, [coupon.id]: { loading: true } }))
+    try {
+      const data = await api.post(`/bulk_orders/coupons/${coupon.id}/validate_coupon/`, {})
+      setCouponCheck(prev => ({ ...prev, [coupon.id]: { loading: false, data } }))
+    } catch (err) {
+      setCouponCheck(prev => ({ ...prev, [coupon.id]: { loading: false, error: err.message || 'Validation failed.' } }))
+    }
+  }
+
   const paidPct = stats
     ? Math.round((stats.paid_orders / Math.max(stats.total_orders, 1)) * 100)
     : null
@@ -608,7 +823,19 @@ function OrderLinkCard({ order, isAdmin, onRefresh }) {
   return (
     <>
       {couponModal && (
-        <CouponModal order={order} onClose={() => setCouponModal(false)} />
+        <CouponModal
+          order={order}
+          onClose={() => setCouponModal(false)}
+          onGenerated={handleCouponsGenerated}
+        />
+      )}
+      {manageModal && (
+        <ManageOrderModal
+          slug={order.slug}
+          onClose={() => setManageModal(false)}
+          onSaved={onRefresh}
+          onDeleted={onDeleted || onRefresh}
+        />
       )}
 
       <div
@@ -760,7 +987,7 @@ function OrderLinkCard({ order, isAdmin, onRefresh }) {
                   </p>
                 </div>
 
-                {stats.total_coupons > 0 && (
+                {isAdmin && stats.total_coupons > 0 && (
                   <div className="p-3 rounded-xl text-sm flex items-center justify-between"
                     style={{ background: 'var(--c-bg)', border: '1px solid var(--c-border)' }}>
                     <span style={{ color: 'var(--c-text-muted)' }}>Coupons</span>
@@ -781,11 +1008,10 @@ function OrderLinkCard({ order, isAdmin, onRefresh }) {
               </span>
             </div>
 
-            {/* Admin-only tools */}
-            {isAdmin && (
-              <div>
+            {/* Organizer tools */}
+            <div>
                 <p className="text-xs uppercase tracking-widest mb-3 font-semibold" style={{ color: 'var(--c-text-muted)' }}>
-                  Admin Tools
+                  Organizer Tools
                 </p>
                 <div className="flex flex-wrap gap-2">
                   <button onClick={() => download('pdf')} disabled={downloading.pdf}
@@ -803,21 +1029,114 @@ function OrderLinkCard({ order, isAdmin, onRefresh }) {
                     style={{ background: 'rgba(22,163,74,0.08)', color: '#15803d', border: '1px solid rgba(22,163,74,0.2)' }}>
                     {downloading.excel ? <SpinnerIcon size={12} /> : <DownloadIcon />} Size Summary
                   </button>
+                  {isAdmin && (
+                    <button
+                      onClick={() => setCouponModal(true)}
+                      className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold transition-colors"
+                      style={{ background: 'rgba(245,158,11,0.1)', color: '#92400e', border: '1px solid rgba(245,158,11,0.3)' }}>
+                      <TagIcon /> Generate Coupons
+                    </button>
+                  )}
                   <button
-                    onClick={() => setCouponModal(true)}
+                    onClick={() => setManageModal(true)}
                     className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold transition-colors"
-                    style={{ background: 'rgba(245,158,11,0.1)', color: '#92400e', border: '1px solid rgba(245,158,11,0.3)' }}>
-                    <TagIcon /> Generate Coupons
+                    style={{ background: 'rgba(6,78,59,0.08)', color: 'var(--c-primary)', border: '1px solid rgba(6,78,59,0.2)' }}>
+                    <PackageIcon size={12} /> Manage Link
                   </button>
                   <a
-                    href={`/api/bulk_orders/links/${order.slug}/analytics/`}
+                    href={`${API_BASE}/bulk_orders/links/${order.slug}/paid_orders/`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold transition-colors"
-                    style={{ background: 'rgba(139,92,246,0.08)', color: '#6d28d9', border: '1px solid rgba(139,92,246,0.2)' }}>
-                    <BarChartIcon /> Analytics JSON
+                    style={{ background: 'rgba(14,165,233,0.08)', color: '#0369a1', border: '1px solid rgba(14,165,233,0.2)' }}>
+                    <UsersIcon /> Public Paid Orders
                   </a>
                 </div>
+              </div>
+
+            {analytics && (
+              <div>
+                <p className="text-xs uppercase tracking-widest mb-3 font-semibold" style={{ color: 'var(--c-text-muted)' }}>
+                  Analytics
+                </p>
+                <div className="grid sm:grid-cols-3 gap-3">
+                  {analytics.size_breakdown?.map(item => (
+                    <div key={item.size} className="p-3 rounded-xl" style={{ background: 'var(--c-bg)', border: '1px solid var(--c-border)' }}>
+                      <p className="font-display text-lg" style={{ color: 'var(--c-primary)' }}>{item.size}</p>
+                      <p className="text-xs" style={{ color: 'var(--c-text-muted)' }}>
+                        {item.paid} paid of {item.total}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+                {analytics.payment_timeline?.length > 0 && (
+                  <div className="mt-3 p-3 rounded-xl" style={{ background: 'var(--c-bg)', border: '1px solid var(--c-border)' }}>
+                    <p className="text-xs uppercase tracking-widest mb-2 font-semibold" style={{ color: 'var(--c-text-muted)' }}>
+                      Last 7 Days
+                    </p>
+                    <div className="grid grid-cols-7 gap-2">
+                      {analytics.payment_timeline.map(item => (
+                        <div key={item.date} className="text-center">
+                          <div className="rounded-lg py-2 text-sm font-semibold" style={{ background: 'white', border: '1px solid var(--c-border)', color: 'var(--c-primary)' }}>
+                            {item.count}
+                          </div>
+                          <p className="text-[10px] mt-1" style={{ color: 'var(--c-text-muted)' }}>
+                            {new Date(item.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+            </div>
+            )}
+
+            {isAdmin && (
+              <div>
+                <div className="flex items-center justify-between gap-3 mb-3">
+                  <p className="text-xs uppercase tracking-widest font-semibold" style={{ color: 'var(--c-text-muted)' }}>
+                    Coupons
+                  </p>
+                  <span className="text-xs" style={{ color: 'var(--c-text-muted)' }}>
+                    {coupons.length} total
+                  </span>
+                </div>
+                {coupons.length === 0 ? (
+                  <div className="p-3 rounded-xl text-sm" style={{ background: 'var(--c-bg)', border: '1px solid var(--c-border)', color: 'var(--c-text-muted)' }}>
+                    No coupons generated yet for this order.
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {coupons.slice(0, 8).map(coupon => {
+                      const validation = couponCheck[coupon.id]
+                      return (
+                        <div key={coupon.id} className="p-3 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+                          style={{ background: 'var(--c-bg)', border: '1px solid var(--c-border)' }}>
+                          <div>
+                            <p className="font-mono text-sm" style={{ color: 'var(--c-text)' }}>{coupon.code}</p>
+                            <p className="text-xs mt-1" style={{ color: 'var(--c-text-muted)' }}>
+                              {coupon.is_used ? 'Used' : 'Available'} • created {formatDate(coupon.created_at)}
+                            </p>
+                            {validation?.data && (
+                              <p className="text-xs mt-1" style={{ color: validation.data.valid ? '#15803d' : '#b91c1c' }}>
+                                {validation.data.valid ? 'Coupon validated successfully.' : validation.data.message}
+                              </p>
+                            )}
+                            {validation?.error && (
+                              <p className="text-xs mt-1" style={{ color: '#b91c1c' }}>{validation.error}</p>
+                            )}
+                          </div>
+                          <button onClick={() => validateCoupon(coupon)} disabled={validation?.loading}
+                            className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold"
+                            style={{ background: 'white', color: 'var(--c-primary)', border: '1px solid var(--c-border)' }}>
+                            {validation?.loading ? <SpinnerIcon size={12} /> : <CheckIcon />}
+                            <span>Validate</span>
+                          </button>
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -859,7 +1178,7 @@ export default function OrganizerDashboard() {
   useEffect(() => {
     if (authLoading || !isAuthenticated) return
     fetchOrders()
-  }, [authLoading, isAuthenticated]) // eslint-disable-line
+  }, [authLoading, isAuthenticated])
 
   async function fetchOrders() {
     setLoading(true)
@@ -880,6 +1199,10 @@ export default function OrganizerDashboard() {
     setOrders(prev => [data, ...prev])
   }
 
+  function handleRemoved(slug) {
+    setOrders(prev => prev.filter(order => order.slug !== slug))
+  }
+
   // ── Loading ───────────────────────────────────────────────────────────────
   if (authLoading || (loading && !orders.length)) {
     return (
@@ -892,8 +1215,8 @@ export default function OrganizerDashboard() {
     )
   }
 
-  const activeOrders  = orders.filter(o => !o.is_expired)
-  const expiredOrders = orders.filter(o => o.is_expired)
+  const activeOrders  = orders.filter(o => !isOrderExpired(o))
+  const expiredOrders = orders.filter(o => isOrderExpired(o))
 
   return (
     <>
@@ -1014,7 +1337,7 @@ export default function OrganizerDashboard() {
               </div>
               <div className="space-y-4">
                 {activeOrders.map(o => (
-                  <OrderLinkCard key={o.id} order={o} isAdmin={isAdmin} onRefresh={fetchOrders} />
+                  <OrderLinkCard key={o.id} order={o} isAdmin={isAdmin} onRefresh={fetchOrders} onDeleted={handleRemoved} />
                 ))}
               </div>
             </div>
@@ -1032,7 +1355,7 @@ export default function OrganizerDashboard() {
               </div>
               <div className="space-y-4">
                 {expiredOrders.map(o => (
-                  <OrderLinkCard key={o.id} order={o} isAdmin={isAdmin} onRefresh={fetchOrders} />
+                  <OrderLinkCard key={o.id} order={o} isAdmin={isAdmin} onRefresh={fetchOrders} onDeleted={handleRemoved} />
                 ))}
               </div>
             </div>

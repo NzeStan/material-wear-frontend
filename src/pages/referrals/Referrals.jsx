@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback, useRef } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { useState, useEffect, useCallback } from 'react'
+import { Link } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import { useScrollRevealGroup, useScrollReveal } from '../../hooks/useScrollAnimation'
 import { api } from '../../services/api'
@@ -244,7 +244,6 @@ function MediaCard({ item }) {
 // ═══════════════════════════════════════════════════════════════════════════════
 export default function Referrals() {
   const { user, isAuthenticated, loading: authLoading } = useAuth()
-  const navigate = useNavigate()
 
   const [pageState, setPageState]     = useState('loading')   // loading | guest | no_profile | dashboard
   const [profile, setProfile]         = useState(null)
@@ -316,7 +315,9 @@ export default function Referrals() {
       profile={profile}
       sharePayload={sharePayload}
       media={media}
+      isAdmin={!!user?.is_staff}
       onProfileUpdated={onProfileUpdated}
+      onMediaUpdated={setMedia}
     />
   )
   // no_profile
@@ -397,6 +398,400 @@ function MarketingView({ user, error, onCreated }) {
   )
 }
 
+function AdminProfileModal({ profileId, onClose, onSaved, onDeleted }) {
+  const [profile, setProfile] = useState(null)
+  const [formData, setFormData] = useState({ full_name: '', phone_number: '', bank_name: '', account_number: '', is_active: true })
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [deleting, setDeleting] = useState(false)
+  const [alert, setAlert] = useState({ type: '', message: '' })
+
+  useEffect(() => {
+    ;(async () => {
+      setLoading(true)
+      try {
+        const data = await api.get(`/referrals/profiles/${profileId}/`)
+        setProfile(data)
+        setFormData({
+          full_name: data.full_name || '',
+          phone_number: data.phone_number || '',
+          bank_name: data.bank_name || '',
+          account_number: data.account_number || '',
+          is_active: !!data.is_active,
+        })
+      } catch (err) {
+        setAlert({ type: 'error', message: err.message || 'Could not load referrer profile.' })
+      } finally {
+        setLoading(false)
+      }
+    })()
+  }, [profileId])
+
+  const handleSave = async (ev) => {
+    ev.preventDefault()
+    setSaving(true)
+    setAlert({ type: '', message: '' })
+    try {
+      const updated = await api.patch(`/referrals/profiles/${profileId}/`, formData)
+      onSaved(updated)
+      onClose()
+    } catch (err) {
+      setAlert({ type: 'error', message: err.message || 'Could not update referrer profile.' })
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const handleDelete = async () => {
+    if (!confirm('Delete this referrer profile permanently?')) return
+    setDeleting(true)
+    try {
+      await api.delete(`/referrals/profiles/${profileId}/`)
+      onDeleted(profileId)
+      onClose()
+    } catch (err) {
+      setAlert({ type: 'error', message: err.message || 'Could not delete referrer profile.' })
+      setDeleting(false)
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.6)' }} onClick={onClose}>
+      <div className="w-full max-w-2xl p-6" style={{ background: 'white' }} onClick={e => e.stopPropagation()}>
+        <div className="flex items-start justify-between gap-4 mb-5">
+          <div>
+            <h3 className="font-display text-2xl" style={{ color: 'var(--c-primary)' }}>Manage Referrer</h3>
+            <p className="text-xs mt-1" style={{ color: 'var(--c-text-muted)' }}>Profile retrieve, update, and delete</p>
+          </div>
+          <button onClick={onClose} style={{ color: 'var(--c-text-muted)' }}><XIcon /></button>
+        </div>
+
+        {alert.message && <div className="mb-4"><Alert type={alert.type} message={alert.message} onClose={() => setAlert({ type: '', message: '' })} /></div>}
+
+        {loading ? (
+          <div className="py-10 text-center" style={{ color: 'var(--c-text-muted)' }}>Loading profile…</div>
+        ) : (
+          <form onSubmit={handleSave} className="space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="form-label">User Email</label>
+                <div className="form-input" style={{ background: 'var(--c-bg-warm)' }}>{profile?.user_email || '—'}</div>
+              </div>
+              <div>
+                <label className="form-label">Referral Code</label>
+                <div className="form-input font-mono tracking-widest" style={{ background: 'var(--c-bg-warm)' }}>{profile?.referral_code || '—'}</div>
+              </div>
+              {[
+                ['full_name', 'Full Name'],
+                ['phone_number', 'Phone Number'],
+                ['bank_name', 'Bank Name'],
+                ['account_number', 'Account Number'],
+              ].map(([key, label]) => (
+                <div key={key}>
+                  <label className="form-label">{label}</label>
+                  <input className="form-input" value={formData[key]} onChange={e => setFormData(prev => ({ ...prev, [key]: e.target.value }))} />
+                </div>
+              ))}
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setFormData(prev => ({ ...prev, is_active: !prev.is_active }))}
+              className="w-full flex items-center justify-between px-4 py-3 text-sm"
+              style={{ border: '1px solid #E5E7EB', background: 'var(--c-bg)' }}
+            >
+              <span style={{ color: 'var(--c-text)' }}>Profile Active</span>
+              <span style={{ color: formData.is_active ? 'var(--c-primary)' : 'var(--c-text-muted)' }}>{formData.is_active ? 'Active' : 'Inactive'}</span>
+            </button>
+
+            <div className="flex gap-3 pt-2">
+              <button type="button" onClick={handleDelete} disabled={deleting || saving} className="flex-1 px-5 py-3 text-xs font-semibold tracking-widest uppercase text-white" style={{ background: '#DC2626', opacity: deleting ? 0.7 : 1 }}>
+                {deleting ? 'Deleting…' : 'Delete Profile'}
+              </button>
+              <button type="submit" disabled={saving || deleting} className="btn-primary flex-1 justify-center">
+                <span>{saving ? 'Saving…' : 'Save Changes'}</span>
+              </button>
+            </div>
+          </form>
+        )}
+      </div>
+    </div>
+  )
+}
+
+function AdminMediaModal({ mediaId, onClose, onSaved, onDeleted }) {
+  const isCreate = !mediaId
+  const [formData, setFormData] = useState({
+    title: '',
+    media_type: 'flyer',
+    marketing_text: '',
+    is_active: true,
+    order: 0,
+    media_file: null,
+  })
+  const [loading, setLoading] = useState(!isCreate)
+  const [saving, setSaving] = useState(false)
+  const [deleting, setDeleting] = useState(false)
+  const [alert, setAlert] = useState({ type: '', message: '' })
+
+  useEffect(() => {
+    if (isCreate) return
+    ;(async () => {
+      setLoading(true)
+      try {
+        const data = await api.get(`/referrals/media/${mediaId}/`)
+        setFormData({
+          title: data.title || '',
+          media_type: data.media_type || 'flyer',
+          marketing_text: data.marketing_text || '',
+          is_active: !!data.is_active,
+          order: data.order ?? 0,
+          media_file: null,
+        })
+      } catch (err) {
+        setAlert({ type: 'error', message: err.message || 'Could not load promotional media.' })
+      } finally {
+        setLoading(false)
+      }
+    })()
+  }, [isCreate, mediaId])
+
+  const buildPayload = () => {
+    const fd = new FormData()
+    fd.append('title', formData.title)
+    fd.append('media_type', formData.media_type)
+    fd.append('marketing_text', formData.marketing_text)
+    fd.append('is_active', String(formData.is_active))
+    fd.append('order', String(formData.order ?? 0))
+    if (formData.media_file) fd.append('media_file', formData.media_file)
+    return fd
+  }
+
+  const handleSave = async (ev) => {
+    ev.preventDefault()
+    setSaving(true)
+    setAlert({ type: '', message: '' })
+    try {
+      const payload = buildPayload()
+      const saved = isCreate
+        ? await api.post('/referrals/media/', payload)
+        : await api.patch(`/referrals/media/${mediaId}/`, payload)
+      onSaved(saved, isCreate)
+      onClose()
+    } catch (err) {
+      setAlert({ type: 'error', message: err.message || `Could not ${isCreate ? 'create' : 'update'} promotional media.` })
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const handleDelete = async () => {
+    if (!confirm('Delete this promotional media item permanently?')) return
+    setDeleting(true)
+    try {
+      await api.delete(`/referrals/media/${mediaId}/`)
+      onDeleted(mediaId)
+      onClose()
+    } catch (err) {
+      setAlert({ type: 'error', message: err.message || 'Could not delete promotional media.' })
+      setDeleting(false)
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.6)' }} onClick={onClose}>
+      <div className="w-full max-w-2xl p-6" style={{ background: 'white' }} onClick={e => e.stopPropagation()}>
+        <div className="flex items-start justify-between gap-4 mb-5">
+          <div>
+            <h3 className="font-display text-2xl" style={{ color: 'var(--c-primary)' }}>{isCreate ? 'New Media' : 'Manage Media'}</h3>
+            <p className="text-xs mt-1" style={{ color: 'var(--c-text-muted)' }}>Media retrieve, create, update, and delete</p>
+          </div>
+          <button onClick={onClose} style={{ color: 'var(--c-text-muted)' }}><XIcon /></button>
+        </div>
+        {alert.message && <div className="mb-4"><Alert type={alert.type} message={alert.message} onClose={() => setAlert({ type: '', message: '' })} /></div>}
+        {loading ? (
+          <div className="py-10 text-center" style={{ color: 'var(--c-text-muted)' }}>Loading media…</div>
+        ) : (
+          <form onSubmit={handleSave} className="space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="form-label">Title</label>
+                <input className="form-input" value={formData.title} onChange={e => setFormData(prev => ({ ...prev, title: e.target.value }))} />
+              </div>
+              <div>
+                <label className="form-label">Media Type</label>
+                <select className="form-input" value={formData.media_type} onChange={e => setFormData(prev => ({ ...prev, media_type: e.target.value }))}>
+                  <option value="flyer">Flyer</option>
+                  <option value="video">Video</option>
+                </select>
+              </div>
+              <div>
+                <label className="form-label">Display Order</label>
+                <input type="number" className="form-input" value={formData.order} onChange={e => setFormData(prev => ({ ...prev, order: e.target.value }))} />
+              </div>
+              <div>
+                <label className="form-label">Media File</label>
+                <input type="file" className="form-input" onChange={e => setFormData(prev => ({ ...prev, media_file: e.target.files?.[0] || null }))} />
+              </div>
+            </div>
+            <div>
+              <label className="form-label">Marketing Text</label>
+              <textarea className="form-input min-h-[140px]" value={formData.marketing_text} onChange={e => setFormData(prev => ({ ...prev, marketing_text: e.target.value }))} />
+            </div>
+            <button
+              type="button"
+              onClick={() => setFormData(prev => ({ ...prev, is_active: !prev.is_active }))}
+              className="w-full flex items-center justify-between px-4 py-3 text-sm"
+              style={{ border: '1px solid #E5E7EB', background: 'var(--c-bg)' }}
+            >
+              <span style={{ color: 'var(--c-text)' }}>Media Active</span>
+              <span style={{ color: formData.is_active ? 'var(--c-primary)' : 'var(--c-text-muted)' }}>{formData.is_active ? 'Active' : 'Inactive'}</span>
+            </button>
+            <div className="flex gap-3 pt-2">
+              {!isCreate && (
+                <button type="button" onClick={handleDelete} disabled={deleting || saving} className="flex-1 px-5 py-3 text-xs font-semibold tracking-widest uppercase text-white" style={{ background: '#DC2626', opacity: deleting ? 0.7 : 1 }}>
+                  {deleting ? 'Deleting…' : 'Delete Media'}
+                </button>
+              )}
+              <button type="submit" disabled={saving || deleting} className="btn-primary flex-1 justify-center">
+                <span>{saving ? 'Saving…' : isCreate ? 'Create Media' : 'Save Changes'}</span>
+              </button>
+            </div>
+          </form>
+        )}
+      </div>
+    </div>
+  )
+}
+
+function AdminReferralPanel({ media, onMediaUpdated }) {
+  const [profiles, setProfiles] = useState([])
+  const [loadingProfiles, setLoadingProfiles] = useState(true)
+  const [profileModalId, setProfileModalId] = useState(null)
+  const [mediaModalId, setMediaModalId] = useState(null)
+  const [createMediaOpen, setCreateMediaOpen] = useState(false)
+
+  const loadProfiles = useCallback(async () => {
+    setLoadingProfiles(true)
+    try {
+      const data = await api.get('/referrals/profiles/')
+      setProfiles(Array.isArray(data) ? data : (data?.results || []))
+    } finally {
+      setLoadingProfiles(false)
+    }
+  }, [])
+
+  useEffect(() => { loadProfiles() }, [loadProfiles])
+
+  const handleProfileSaved = (updated) => {
+    setProfiles(prev => prev.map(item => item.id === updated.id ? { ...item, ...updated } : item))
+  }
+  const handleProfileDeleted = (profileId) => {
+    setProfiles(prev => prev.filter(item => item.id !== profileId))
+  }
+  const handleMediaSaved = (saved, isCreate) => {
+    onMediaUpdated(prev => (
+      isCreate ? [saved, ...prev] : prev.map(item => item.id === saved.id ? { ...item, ...saved } : item)
+    ))
+  }
+  const handleMediaDeleted = (mediaId) => {
+    onMediaUpdated(prev => prev.filter(item => item.id !== mediaId))
+  }
+
+  return (
+    <section className="py-16 lg:py-20" style={{ background: 'var(--c-bg)' }}>
+      {profileModalId && (
+        <AdminProfileModal
+          profileId={profileModalId}
+          onClose={() => setProfileModalId(null)}
+          onSaved={handleProfileSaved}
+          onDeleted={handleProfileDeleted}
+        />
+      )}
+      {mediaModalId !== null && (
+        <AdminMediaModal
+          mediaId={mediaModalId}
+          onClose={() => setMediaModalId(null)}
+          onSaved={handleMediaSaved}
+          onDeleted={handleMediaDeleted}
+        />
+      )}
+      {createMediaOpen && (
+        <AdminMediaModal
+          mediaId={null}
+          onClose={() => setCreateMediaOpen(false)}
+          onSaved={handleMediaSaved}
+          onDeleted={handleMediaDeleted}
+        />
+      )}
+
+      <div className="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <div className="flex items-end justify-between gap-6 mb-10">
+          <div>
+            <p className="section-eyebrow">Admin tools</p>
+            <h2 className="section-title">Referral Operations</h2>
+          </div>
+          <button onClick={() => setCreateMediaOpen(true)} className="btn-primary">
+            <span>New Media</span><ArrowIcon />
+          </button>
+        </div>
+
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
+          <div style={{ background: 'white', border: '1px solid #E5E7EB' }} className="p-6">
+            <div className="flex items-center justify-between mb-5">
+              <h3 className="font-display text-2xl" style={{ color: 'var(--c-primary)' }}>Referrer Profiles</h3>
+              <span className="text-xs uppercase tracking-widest" style={{ color: 'var(--c-text-muted)' }}>{profiles.length} total</span>
+            </div>
+            {loadingProfiles ? (
+              <p className="text-sm" style={{ color: 'var(--c-text-muted)' }}>Loading profiles…</p>
+            ) : (
+              <div className="space-y-3 max-h-[440px] overflow-auto">
+                {profiles.map(item => (
+                  <button key={item.id} onClick={() => setProfileModalId(item.id)} className="w-full text-left p-4 transition-colors"
+                    style={{ background: 'var(--c-bg)', border: '1px solid #E5E7EB' }}>
+                    <div className="flex items-center justify-between gap-4">
+                      <div>
+                        <p className="text-sm font-semibold" style={{ color: 'var(--c-primary)' }}>{item.full_name}</p>
+                        <p className="text-xs mt-1" style={{ color: 'var(--c-text-muted)' }}>{item.user_email} · {item.referral_code}</p>
+                      </div>
+                      <span className="text-xs font-semibold" style={{ color: item.is_active ? 'var(--c-primary)' : '#DC2626' }}>
+                        {item.is_active ? 'Active' : 'Inactive'}
+                      </span>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div style={{ background: 'white', border: '1px solid #E5E7EB' }} className="p-6">
+            <div className="flex items-center justify-between mb-5">
+              <h3 className="font-display text-2xl" style={{ color: 'var(--c-primary)' }}>Promotional Media</h3>
+              <span className="text-xs uppercase tracking-widest" style={{ color: 'var(--c-text-muted)' }}>{media.length} total</span>
+            </div>
+            <div className="space-y-3 max-h-[440px] overflow-auto">
+              {media.map(item => (
+                <button key={item.id} onClick={() => setMediaModalId(item.id)} className="w-full text-left p-4 transition-colors"
+                  style={{ background: 'var(--c-bg)', border: '1px solid #E5E7EB' }}>
+                  <div className="flex items-center justify-between gap-4">
+                    <div>
+                      <p className="text-sm font-semibold" style={{ color: 'var(--c-primary)' }}>{item.title}</p>
+                      <p className="text-xs mt-1" style={{ color: 'var(--c-text-muted)' }}>{item.media_type} · order {item.order} · {item.created_by_name || 'system'}</p>
+                    </div>
+                    <span className="text-xs font-semibold" style={{ color: item.is_active ? 'var(--c-primary)' : '#DC2626' }}>
+                      {item.is_active ? 'Active' : 'Inactive'}
+                    </span>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  )
+}
+
 // ── Marketing hero ────────────────────────────────────────────────────────────
 function MarketingHero({ authenticated }) {
   return (
@@ -425,7 +820,7 @@ function MarketingHero({ authenticated }) {
           </h1>
           <p className="text-base sm:text-lg leading-relaxed mb-10 max-w-xl"
             style={{ color: 'rgba(255,255,255,0.65)' }}>
-            Join Material Wear's referral programme. Share premium fashion with your network,
+            Join Material Wear&apos;s referral programme. Share premium fashion with your network,
             get your unique code, and earn commissions — paid directly to your bank account.
           </p>
 
@@ -493,7 +888,7 @@ function HowItWorks({ groupRef }) {
               desc: 'Every successful referral earns you a commission paid directly to your bank account.',
               delay: 400,
             },
-          ].map((s, i) => (
+          ].map((s) => (
             <StepCard key={s.n} number={s.n} title={s.title} desc={s.desc} delay={s.delay} />
           ))}
         </div>
@@ -805,7 +1200,7 @@ function JoinFormSection({ user, error, onCreated }) {
 // ═══════════════════════════════════════════════════════════════════════════════
 // DASHBOARD — authenticated referrer
 // ═══════════════════════════════════════════════════════════════════════════════
-function Dashboard({ profile, sharePayload, media, onProfileUpdated }) {
+function Dashboard({ profile, sharePayload, media, isAdmin, onProfileUpdated, onMediaUpdated }) {
   const { copy: copyCode, copied: codeCopied }     = useCopy()
   const { copy: copyMsg,  copied: msgCopied }       = useCopy()
   const [editOpen, setEditOpen]                     = useState(false)
@@ -1114,6 +1509,8 @@ function Dashboard({ profile, sharePayload, media, onProfileUpdated }) {
           </div>
         </div>
       </section>
+
+      {isAdmin && <AdminReferralPanel media={media} onMediaUpdated={onMediaUpdated} />}
     </main>
   )
 }
@@ -1166,8 +1563,9 @@ function EditProfileForm({ profile, onUpdated, onCancel }) {
     ev.preventDefault()
     setLoading(true)
     setAlert({ type: '', message: '' })
+    setErrors({})
     try {
-      const updated = await api.patch(`/referrals/profiles/${profile.id}/`, formData)
+      const updated = await api.patch('/referrals/profiles/me/update/', formData)
       setAlert({ type: 'success', message: 'Profile updated successfully.' })
       setTimeout(() => onUpdated(updated), 800)
     } catch (err) {

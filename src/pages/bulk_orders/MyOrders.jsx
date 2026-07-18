@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import { api } from '../../services/api'
 import { CONTACT } from '../../config/constants'
+const RECENT_BULK_ORDER_IDS_KEY = 'mw_recent_bulk_order_ids'
 
 // ── Icons ──────────────────────────────────────────────────────────────────────
 const SpinnerIcon = ({ size = 20 }) => (
@@ -68,6 +69,34 @@ function formatDateFull(iso) {
   })
 }
 
+function getRememberedBulkOrderIds() {
+  if (typeof window === 'undefined') return []
+  try {
+    const parsed = JSON.parse(window.localStorage.getItem(RECENT_BULK_ORDER_IDS_KEY) || '[]')
+    return Array.isArray(parsed) ? parsed.filter(Boolean) : []
+  } catch {
+    return []
+  }
+}
+
+async function fetchOrdersWithRemembered(apiOrders) {
+  const existing = Array.isArray(apiOrders) ? apiOrders : []
+  const knownIds = new Set(existing.map(order => order.id))
+  const rememberedIds = getRememberedBulkOrderIds().filter(id => !knownIds.has(id))
+
+  if (!rememberedIds.length) return existing
+
+  const rememberedOrders = await Promise.allSettled(
+    rememberedIds.map(id => api.get(`/bulk_orders/orders/${id}/`))
+  )
+
+  const recovered = rememberedOrders
+    .filter(result => result.status === 'fulfilled' && result.value?.id)
+    .map(result => result.value)
+
+  return [...recovered, ...existing]
+}
+
 // ══════════════════════════════════════════════════════════════════════════════
 //  MAIN COMPONENT
 // ══════════════════════════════════════════════════════════════════════════════
@@ -100,7 +129,8 @@ export default function MyOrders() {
     ;(async () => {
       try {
         const data = await api.get('/bulk_orders/orders/')
-        setOrders(Array.isArray(data) ? data : (data?.results ?? []))
+        const apiOrders = Array.isArray(data) ? data : (data?.results ?? [])
+        setOrders(await fetchOrdersWithRemembered(apiOrders))
       } catch (err) {
         setError(err.message || 'Failed to load orders.')
       } finally {
@@ -128,7 +158,8 @@ export default function MyOrders() {
     setError('')
     try {
       const data = await api.get('/bulk_orders/orders/')
-      setOrders(Array.isArray(data) ? data : (data?.results ?? []))
+      const apiOrders = Array.isArray(data) ? data : (data?.results ?? [])
+      setOrders(await fetchOrdersWithRemembered(apiOrders))
     } catch (err) {
       setError(err.message || 'Failed to reload.')
     } finally {
@@ -306,15 +337,35 @@ export default function MyOrders() {
 // ══════════════════════════════════════════════════════════════════════════════
 function OrderCard({ order, onPay, paying }) {
   const [expanded, setExpanded] = useState(false)
+  const [detail, setDetail] = useState(null)
+  const [detailLoading, setDetailLoading] = useState(false)
+  const [detailError, setDetailError] = useState('')
 
-  const isPaid     = order.paid
-  const orgName    = order.bulk_order?.organization_name   ?? '—'
-  const orgSlug    = order.bulk_order?.slug                ?? ''
-  const deadline   = order.bulk_order?.payment_deadline
-  const isExpired  = order.bulk_order?.is_expired
+  const sourceOrder = detail || order
+  const isPaid     = sourceOrder.paid
+  const orgName    = sourceOrder.bulk_order?.organization_name   ?? '—'
+  const orgSlug    = sourceOrder.bulk_order?.slug                ?? ''
+  const deadline   = sourceOrder.bulk_order?.payment_deadline
+  const isExpired  = sourceOrder.bulk_order?.is_expired
 
   const deadlineFormatted = deadline ? formatDateFull(deadline) : null
   const isDeadlineSoon    = deadline && !isExpired && ((new Date(deadline) - new Date()) < 86400000 * 3)
+
+  useEffect(() => {
+    if (!expanded || detail) return
+    ;(async () => {
+      setDetailLoading(true)
+      setDetailError('')
+      try {
+        const data = await api.get(`/bulk_orders/orders/${order.id}/`)
+        setDetail(data)
+      } catch (err) {
+        setDetailError(err.message || 'Could not load order details.')
+      } finally {
+        setDetailLoading(false)
+      }
+    })()
+  }, [expanded, detail, order.id])
 
   return (
     <div
@@ -416,16 +467,16 @@ function OrderCard({ order, onPay, paying }) {
                 Order Details
               </h4>
               <div className="space-y-0">
-                <DetailRow label="Reference"    value={<span className="font-mono text-xs">{order.reference}</span>} />
-                <DetailRow label="Full Name"    value={order.full_name} />
-                <DetailRow label="Email"        value={order.email} />
-                <DetailRow label="Size"         value={order.size} />
-                {order.custom_name && (
-                  <DetailRow label="Custom Text"  value={order.custom_name} />
+                <DetailRow label="Reference"    value={<span className="font-mono text-xs">{sourceOrder.reference}</span>} />
+                <DetailRow label="Full Name"    value={sourceOrder.full_name} />
+                <DetailRow label="Email"        value={sourceOrder.email} />
+                <DetailRow label="Size"         value={sourceOrder.size} />
+                {sourceOrder.custom_name && (
+                  <DetailRow label="Custom Text"  value={sourceOrder.custom_name} />
                 )}
-                <DetailRow label="Order #"      value={order.serial_number ? `#${order.serial_number}` : '—'} />
-                <DetailRow label="Date Placed"  value={formatDateFull(order.created_at)} />
-                {isPaid && <DetailRow label="Paid On"     value={formatDateFull(order.updated_at)} />}
+                <DetailRow label="Order #"      value={sourceOrder.serial_number ? `#${sourceOrder.serial_number}` : '—'} />
+                <DetailRow label="Date Placed"  value={formatDateFull(sourceOrder.created_at)} />
+                {isPaid && <DetailRow label="Paid On"     value={formatDateFull(sourceOrder.updated_at)} />}
               </div>
             </div>
 
@@ -479,6 +530,15 @@ function OrderCard({ order, onPay, paying }) {
                 Contact the organiser for assistance.
               </span>
             </div>
+          )}
+
+          {detailLoading && (
+            <p className="text-xs mt-4" style={{ color: 'var(--c-text-muted)' }}>
+              Loading latest order details...
+            </p>
+          )}
+          {detailError && (
+            <p className="text-xs mt-4" style={{ color: '#b91c1c' }}>{detailError}</p>
           )}
         </div>
       )}

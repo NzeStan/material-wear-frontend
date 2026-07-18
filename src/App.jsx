@@ -48,8 +48,16 @@ import TestimonialsAdmin          from './pages/admin/TestimonialsAdmin'
 
 // Scroll to top on route change
 function ScrollReset() {
-  const { pathname } = useLocation()
-  useEffect(() => { window.scrollTo({ top: 0, behavior: 'instant' }) }, [pathname])
+  const { pathname, search, hash } = useLocation()
+  useEffect(() => {
+    if (hash) return
+
+    const frame = requestAnimationFrame(() => {
+      window.scrollTo({ top: 0, left: 0, behavior: 'auto' })
+    })
+
+    return () => cancelAnimationFrame(frame)
+  }, [pathname, search, hash])
   return null
 }
 
@@ -191,7 +199,7 @@ function ComingSoon({ title }) {
           {title} — Coming Soon
         </h1>
         <p className="max-w-xs mx-auto" style={{ color: 'var(--c-text-muted)' }}>
-          We're putting the finishing touches on this page. Check back soon!
+          We&apos;re putting the finishing touches on this page. Check back soon!
         </p>
         <a href="/" className="btn-primary mt-8 inline-flex">
           <span>Back to Home</span>

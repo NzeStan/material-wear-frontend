@@ -435,13 +435,13 @@ export default function AcademicDirectorySubmit() {
                 )}
                 {form.role === 'DEPT_PRESIDENT' && (
                   <p style={{ color: 'var(--c-text-muted)' }}>
-                    <strong style={{ color: 'var(--c-primary)' }}>Department President</strong> — heads the department's student body.
+                    <strong style={{ color: 'var(--c-primary)' }}>Department President</strong> — heads the department&apos;s student body.
                     Tenure year tracks when they took office.
                   </p>
                 )}
                 {form.role === 'FACULTY_PRESIDENT' && (
                   <p style={{ color: 'var(--c-text-muted)' }}>
-                    <strong style={{ color: 'var(--c-primary)' }}>Faculty President</strong> — heads the faculty's student union.
+                    <strong style={{ color: 'var(--c-primary)' }}>Faculty President</strong> — heads the faculty&apos;s student union.
                     Tenure year tracks when they took office.
                   </p>
                 )}

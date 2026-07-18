@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { api } from '../../services/api'
+import { useAuth } from '../../context/AuthContext'
 import { CONTACT } from '../../config/constants'
 
 // ── Icons ──────────────────────────────────────────────────────────────────────
@@ -60,6 +61,8 @@ const ShieldIcon = () => (
 
 // ── Size options ───────────────────────────────────────────────────────────────
 const SIZE_OPTIONS = ['S', 'M', 'L', 'XL', 'XXL', 'XXXL', 'XXXXL']
+const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api'
+const RECENT_BULK_ORDER_IDS_KEY = 'mw_recent_bulk_order_ids'
 
 // ── Countdown unit ─────────────────────────────────────────────────────────────
 function CountdownUnit({ value, label }) {
@@ -100,11 +103,20 @@ function ErrorBanner({ message }) {
   )
 }
 
+function rememberBulkOrderId(orderId) {
+  if (!orderId || typeof window === 'undefined') return
+
+  const existing = JSON.parse(window.localStorage.getItem(RECENT_BULK_ORDER_IDS_KEY) || '[]')
+  const next = [orderId, ...existing.filter(id => id !== orderId)].slice(0, 20)
+  window.localStorage.setItem(RECENT_BULK_ORDER_IDS_KEY, JSON.stringify(next))
+}
+
 // ══════════════════════════════════════════════════════════════════════════════
 //  MAIN COMPONENT
 // ══════════════════════════════════════════════════════════════════════════════
 export default function BulkOrderPage() {
   const { slug } = useParams()
+  const { isAuthenticated, user } = useAuth()
 
   const [stats, setStats]           = useState(null)
   const [pageState, setPageState]   = useState('loading') // loading|error|expired|form|submitted|coupon-paid
@@ -118,6 +130,17 @@ export default function BulkOrderPage() {
     full_name: '', email: '', size: '', custom_name: '', coupon_code: '',
   })
   const [formErrors, setFormErrors] = useState({})
+
+  useEffect(() => {
+    if (!isAuthenticated || !user) return
+    const preferredName = [user.first_name, user.last_name].filter(Boolean).join(' ').trim()
+
+    setForm(prev => ({
+      ...prev,
+      email: user.email || prev.email,
+      full_name: prev.full_name || preferredName || prev.full_name,
+    }))
+  }, [isAuthenticated, user])
 
   // ── Page title ───────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -171,8 +194,6 @@ export default function BulkOrderPage() {
     if (!form.email.trim())      errs.email      = 'Email address is required'
     else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) errs.email = 'Enter a valid email address'
     if (!form.size)              errs.size       = 'Please select your size'
-    if (stats?.custom_branding_enabled && !form.custom_name.trim())
-      errs.custom_name = 'Custom text is required for this order'
     return errs
   }
 
@@ -200,6 +221,7 @@ export default function BulkOrderPage() {
         ...(stats?.custom_branding_enabled && form.custom_name.trim() && { custom_name: form.custom_name }),
       }
       const data = await api.post(`/bulk_orders/links/${slug}/submit_order/`, body)
+      rememberBulkOrderId(data.id)
       setOrder(data)
       setPageState(data.paid ? 'coupon-paid' : 'submitted')
     } catch (err) {
@@ -251,6 +273,17 @@ export default function BulkOrderPage() {
         <a href={`mailto:${CONTACT.email}`} className="btn-primary inline-flex items-center gap-2 justify-center">
           Contact Us
         </a>
+        {slug && (
+          <a
+            href={`${API_BASE}/bulk_orders/links/${slug}/paid_orders/`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="btn-secondary inline-flex items-center gap-2 justify-center"
+          >
+            <UsersIcon />
+            See Paid Orders
+          </a>
+        )}
         <Link to="/" className="btn-secondary inline-flex items-center gap-2 justify-center">
           Back to Home
         </Link>
@@ -428,6 +461,32 @@ export default function BulkOrderPage() {
                   <ErrorBanner message={error} />
                 )}
 
+                <div className="rounded-2xl p-4 flex items-start gap-3"
+                  style={{ background: 'var(--c-bg-warm)', border: '1px solid var(--c-border)' }}>
+                  <div className="flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center"
+                    style={{ background: 'rgba(6,78,59,0.08)', color: 'var(--c-primary)' }}>
+                    <UsersIcon />
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold" style={{ color: 'var(--c-primary)' }}>
+                      Want extra confidence before ordering?
+                    </p>
+                    <p className="text-xs mt-1.5" style={{ color: 'var(--c-text-muted)' }}>
+                      You can view the public page showing members whose payments are already confirmed for this group order.
+                    </p>
+                    <a
+                      href={`${API_BASE}/bulk_orders/links/${slug}/paid_orders/`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-2 text-sm font-semibold mt-3"
+                      style={{ color: 'var(--c-primary)' }}
+                    >
+                      <UsersIcon />
+                      Open paid orders page
+                    </a>
+                  </div>
+                </div>
+
                 {/* Full Name */}
                 <FormField
                   label="Full Name"
@@ -450,7 +509,9 @@ export default function BulkOrderPage() {
                   label="Email Address"
                   required
                   error={formErrors.email}
-                  hint="Your payment receipt and confirmation will be sent here"
+                  hint={isAuthenticated && user?.email
+                    ? `Using your signed-in account email: ${user.email}`
+                    : 'Your payment receipt and confirmation will be sent here'}
                 >
                   <input
                     type="email"
@@ -458,7 +519,12 @@ export default function BulkOrderPage() {
                     onChange={e => setField('email', e.target.value)}
                     placeholder="you@example.com"
                     className="form-input"
-                    style={inputStyle(formErrors.email)}
+                    disabled={isAuthenticated && !!user?.email}
+                    style={{
+                      ...inputStyle(formErrors.email),
+                      opacity: isAuthenticated && user?.email ? 0.8 : 1,
+                      cursor: isAuthenticated && user?.email ? 'not-allowed' : 'text',
+                    }}
                   />
                 </FormField>
 
@@ -500,7 +566,7 @@ export default function BulkOrderPage() {
                 {stats?.custom_branding_enabled && (
                   <FormField
                     label="Custom Name / Text"
-                    required
+                    optional
                     error={formErrors.custom_name}
                     hint="This text will be printed or embroidered on your item"
                   >
@@ -672,7 +738,6 @@ function PaymentView({ order, paying, error, onPay }) {
     return () => { document.title = 'Material Wear Limited' }
   }, [])
 
-  const vatAmount  = order?.bulk_order ? null : null // shown after init_payment
   const orgName    = order?.bulk_order?.organization_name ?? '—'
 
   return (

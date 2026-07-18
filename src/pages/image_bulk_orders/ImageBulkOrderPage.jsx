@@ -3,14 +3,7 @@ import { useParams, Link } from 'react-router-dom'
 import { api } from '../../services/api'
 import { CONTACT } from '../../config/constants'
 
-const BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api'
-
 // ── Icons ──────────────────────────────────────────────────────────────────────
-const ClockIcon = ({ size = 20 }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-    <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
-  </svg>
-)
 const CheckCircleIcon = ({ size = 40 }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
     <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>
@@ -81,29 +74,7 @@ const XIcon = ({ size = 14 }) => (
 const SIZE_OPTIONS = ['S', 'M', 'L', 'XL', 'XXL', 'XXXL', 'XXXXL']
 const ACCEPTED_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp']
 const MAX_SIZE_MB = 10
-
-// ── Multipart submit (can't use api.post — needs FormData) ─────────────────────
-async function postMultipart(endpoint, formData) {
-  const token = api.getToken()
-  const res = await fetch(`${BASE_URL}${endpoint}`, {
-    method: 'POST',
-    credentials: 'include',
-    headers: token ? { Authorization: `Token ${token}` } : {},
-    body: formData,
-  })
-  const data = await res.json().catch(() => ({ detail: res.statusText }))
-  if (!res.ok) {
-    const err = new Error(
-      data?.detail ||
-      data?.non_field_errors?.[0] ||
-      Object.values(data || {})?.[0]?.[0] ||
-      'Request failed'
-    )
-    err.data = data
-    throw err
-  }
-  return data
-}
+const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api'
 
 // ── Countdown unit ─────────────────────────────────────────────────────────────
 function CountdownUnit({ value, label }) {
@@ -316,8 +287,6 @@ export default function ImageBulkOrderPage() {
     if (!form.email.trim())      errs.email      = 'Email address is required'
     else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) errs.email = 'Enter a valid email address'
     if (!form.size)              errs.size       = 'Please select your size'
-    if (stats?.custom_branding_enabled && !form.custom_name.trim())
-      errs.custom_name = 'Custom text is required for this order'
     return errs
   }
 
@@ -355,7 +324,7 @@ export default function ImageBulkOrderPage() {
       if (imageFile)
         fd.append('image', imageFile)
 
-      const data = await postMultipart(`/image_bulk_orders/links/${slug}/submit_order/`, fd)
+      const data = await api.post(`/image_bulk_orders/links/${slug}/submit_order/`, fd)
       setOrder(data)
       setPageState(data.paid ? 'coupon-paid' : 'submitted')
     } catch (err) {
@@ -616,7 +585,7 @@ export default function ImageBulkOrderPage() {
 
                 {/* Custom Name (conditional) */}
                 {stats?.custom_branding_enabled && (
-                  <FormField label="Custom Name / Text" required error={formErrors.custom_name}
+                  <FormField label="Custom Name / Text" optional error={formErrors.custom_name}
                     hint="This text will be printed or embroidered on your item">
                     <input
                       type="text" value={form.custom_name}
@@ -765,6 +734,22 @@ export default function ImageBulkOrderPage() {
                 </div>
               </div>
             )}
+
+            <div className="rounded-2xl p-5" style={{ border: '1px solid var(--c-border)', background: '#fff' }}>
+              <p className="text-xs uppercase tracking-widest mb-1" style={{ color: 'var(--c-text-muted)' }}>Community proof</p>
+              <p className="text-sm mb-3" style={{ color: 'var(--c-text-muted)' }}>
+                See the public wall of confirmed paid image orders for this group.
+              </p>
+              <a
+                href={`${API_BASE}/image_bulk_orders/links/${slug}/paid_orders/`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn-secondary w-full inline-flex items-center justify-center gap-2"
+              >
+                <UsersIcon />
+                View Paid Orders
+              </a>
+            </div>
 
             {/* Price */}
             {stats?.price_per_item && (

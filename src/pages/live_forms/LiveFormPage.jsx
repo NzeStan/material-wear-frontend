@@ -59,12 +59,6 @@ const IconLock = () => (
     <path d="M7 11V7a5 5 0 0 1 10 0v4" />
   </svg>
 )
-const IconChevronDown = () => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" style={{ width: 16, height: 16, pointerEvents: 'none' }}>
-    <polyline points="6 9 12 15 18 9" />
-  </svg>
-)
-
 /* ─── size button ───────────────────────────────────────────── */
 function SizeBtn({ size, selected, onClick }) {
   return (
@@ -122,7 +116,7 @@ function EntryCard({ entry, isNew, showCustomName }) {
           </span>
           {showCustomName && entry.custom_name && (
             <span style={{ fontSize: '0.7rem', color: 'var(--c-text-muted)', fontStyle: 'italic' }}>
-              "{entry.custom_name}"
+              &quot;{entry.custom_name}&quot;
             </span>
           )}
         </div>
@@ -223,7 +217,7 @@ export default function LiveFormPage() {
       setSecsLeft(s => Math.max(0, s - 1))
     }, 1000)
     return () => clearInterval(tickRef.current)
-  }, [form?.id])
+  }, [form])
 
   /* ── live feed ── */
   const fetchFeed = useCallback(async () => {
@@ -257,7 +251,7 @@ export default function LiveFormPage() {
     fetchFeed()
     pollRef.current = setInterval(fetchFeed, POLL_INTERVAL)
     return () => clearInterval(pollRef.current)
-  }, [form?.id, fetchFeed])
+  }, [form, fetchFeed])
 
   /* ── submit ── */
   const handleSubmit = async (e) => {
@@ -320,8 +314,6 @@ export default function LiveFormPage() {
   /* ── countdown display ── */
   const countdownStr  = fmtCountdown(secsLeft)
   const [hh, mm, ss]  = countdownStr.split(':')
-  const urgencyColor  = secsLeft < 300 ? '#dc2626' : secsLeft < 3600 ? '#d97706' : 'var(--c-primary)'
-
   return (
     <div className="page-transition" style={{ minHeight: '100vh', background: 'var(--c-bg)' }}>
       <style>{`
@@ -455,7 +447,7 @@ export default function LiveFormPage() {
                 <div style={{ width: 72, height: 72, borderRadius: '50%', background: 'rgba(255,255,255,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1rem', color: '#4ade80' }}>
                   <IconCheck />
                 </div>
-                <h2 style={{ color: '#fff', fontWeight: 800, fontSize: '1.5rem', marginBottom: '0.25rem' }}>You're registered!</h2>
+                <h2 style={{ color: '#fff', fontWeight: 800, fontSize: '1.5rem', marginBottom: '0.25rem' }}>You&apos;re registered!</h2>
                 <p style={{ color: 'rgba(255,255,255,0.75)', fontSize: '0.9rem' }}>{form?.organization_name}</p>
               </div>
               <div style={{ padding: '1.5rem' }}>

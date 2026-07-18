@@ -41,12 +41,64 @@ const GithubIcon = () => (
 
 // ── OAuth redirect helpers ────────────────────────────────────────────────────
 const BACKEND = (import.meta.env.VITE_API_BASE_URL || '').replace('/api', '')
-const goToGoogle = () => { window.location.href = `${BACKEND}/accounts/google/login/` }
-const goToGithub = () => { window.location.href = `${BACKEND}/accounts/github/login/` }
+const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || ''
+const SOCIAL_ENTRY = `${BACKEND}/api/auth/social/accounts`
+const goToGoogle = () => { window.location.href = `${SOCIAL_ENTRY}/google/login/` }
+const goToGithub = () => { window.location.href = `${SOCIAL_ENTRY}/github/login/` }
+
+function loadGoogleScript() {
+  return new Promise((resolve, reject) => {
+    if (window.google?.accounts?.oauth2) {
+      resolve(window.google)
+      return
+    }
+
+    const existing = document.querySelector('script[data-google-identity="true"]')
+    if (existing) {
+      existing.addEventListener('load', () => resolve(window.google), { once: true })
+      existing.addEventListener('error', () => reject(new Error('Could not load Google sign-in.')), { once: true })
+      return
+    }
+
+    const script = document.createElement('script')
+    script.src = 'https://accounts.google.com/gsi/client'
+    script.async = true
+    script.defer = true
+    script.dataset.googleIdentity = 'true'
+    script.onload = () => resolve(window.google)
+    script.onerror = () => reject(new Error('Could not load Google sign-in.'))
+    document.head.appendChild(script)
+  })
+}
+
+async function requestGoogleAccessToken() {
+  await loadGoogleScript()
+
+  return new Promise((resolve, reject) => {
+    if (!window.google?.accounts?.oauth2) {
+      reject(new Error('Google sign-in is not available in this browser session.'))
+      return
+    }
+
+    const tokenClient = window.google.accounts.oauth2.initTokenClient({
+      client_id: GOOGLE_CLIENT_ID,
+      scope: 'openid email profile',
+      callback: response => {
+        if (response?.error) {
+          reject(new Error(response.error_description || response.error || 'Google sign-in was cancelled.'))
+          return
+        }
+        resolve(response.access_token)
+      },
+    })
+
+    tokenClient.requestAccessToken({ prompt: 'select_account' })
+  })
+}
 
 // ── Component ─────────────────────────────────────────────────────────────────
 export default function Login() {
-  const { login, isAuthenticated, user } = useAuth()
+  const { login, loginWithGoogleToken, isAuthenticated, user } = useAuth()
   const navigate  = useNavigate()
   const location  = useLocation()
   const from      = location.state?.from?.pathname || '/'
@@ -54,6 +106,7 @@ export default function Login() {
   const [formData, setFormData]       = useState({ email: '', password: '' })
   const [errors, setErrors]           = useState({})
   const [loading, setLoading]         = useState(false)
+  const [socialLoading, setSocialLoading] = useState('')
   const [showPassword, setShowPassword] = useState(false)
 
   useEffect(() => {
@@ -95,17 +148,38 @@ export default function Login() {
     if (errors[name]) setErrors(p => ({ ...p, [name]: '' }))
   }
 
-  const SocialBtn = ({ onClick, icon, label }) => (
+  const handleGoogleApiLogin = async () => {
+    setErrors({})
+    setSocialLoading('google')
+    try {
+      if (!GOOGLE_CLIENT_ID) {
+        goToGoogle()
+        return
+      }
+      const accessToken = await requestGoogleAccessToken()
+      const userData = await loginWithGoogleToken(accessToken)
+      const dest = from !== '/' ? from : (userData?.is_staff ? '/admin' : '/')
+      navigate(dest, { replace: true })
+    } catch (err) {
+      setErrors({ form: err.message || 'Google sign-in failed. Please try again.' })
+    } finally {
+      setSocialLoading('')
+    }
+  }
+
+  const SocialBtn = ({ onClick, icon, label, busy, hint }) => (
     <button
       type="button"
       onClick={onClick}
+      disabled={!!busy}
       className="flex items-center justify-center gap-2.5 px-4 py-3 text-xs font-medium tracking-wide border transition-all duration-200 w-full"
-      style={{ border: '1.5px solid #D1D5DB', background: 'white', color: 'var(--c-text)' }}
+      style={{ border: '1.5px solid #D1D5DB', background: 'white', color: 'var(--c-text)', opacity: busy ? 0.7 : 1 }}
       onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--c-primary)'; e.currentTarget.style.boxShadow = 'var(--shadow-sm)' }}
       onMouseLeave={e => { e.currentTarget.style.borderColor = '#D1D5DB'; e.currentTarget.style.boxShadow = 'none' }}
     >
       {icon}
-      <span>Continue with {label}</span>
+      <span>{busy ? `Connecting ${label}…` : `Continue with ${label}`}</span>
+      {hint ? <span className="sr-only">{hint}</span> : null}
     </button>
   )
 
@@ -207,7 +281,7 @@ export default function Login() {
             Sign In
           </h1>
           <p className="text-sm mb-8" style={{ color: 'var(--c-text-muted)' }}>
-            Don't have an account?{' '}
+            Don&apos;t have an account?{' '}
             <Link to="/register" className="font-semibold underline underline-offset-2 transition-colors"
               style={{ color: 'var(--c-primary)' }}>
               Create one free
@@ -216,8 +290,11 @@ export default function Login() {
 
           {/* Social login */}
           <div className="space-y-3 mb-6">
-            <SocialBtn onClick={goToGoogle} icon={<GoogleIcon />} label="Google" />
-            <SocialBtn onClick={goToGithub} icon={<GithubIcon />} label="GitHub" />
+            <SocialBtn onClick={handleGoogleApiLogin} icon={<GoogleIcon />} label="Google" busy={socialLoading === 'google'} />
+            <SocialBtn onClick={goToGithub} icon={<GithubIcon />} label="GitHub" busy={socialLoading === 'github'} />
+            <p className="text-[11px]" style={{ color: 'var(--c-text-light)' }}>
+              Google now uses direct token exchange with the account API. GitHub still uses the secure redirect flow.
+            </p>
           </div>
 
           {/* Divider */}

@@ -24,6 +24,12 @@ const LOWER_BODY_FIELDS = [
 ]
 
 const ALL_FIELDS = [...UPPER_BODY_FIELDS, ...LOWER_BODY_FIELDS]
+const SORT_OPTIONS = [
+  { value: '-created_at', label: 'Newest first' },
+  { value: 'created_at', label: 'Oldest first' },
+  { value: '-updated_at', label: 'Recently updated' },
+  { value: 'updated_at', label: 'Least recently updated' },
+]
 
 const emptyForm = () =>
   Object.fromEntries(ALL_FIELDS.map((f) => [f.key, '']))
@@ -117,7 +123,7 @@ function FieldGroup({ title, icon, fields, values, onChange, errors }) {
   )
 }
 
-function MeasurementCard({ record, onEdit, onDelete }) {
+function MeasurementCard({ record, onOpen, onDelete }) {
   const [expanded, setExpanded] = useState(false)
   const filled = filledCount(record)
 
@@ -153,13 +159,13 @@ function MeasurementCard({ record, onEdit, onDelete }) {
         </div>
         <div className="flex items-center gap-2 flex-shrink-0 ml-4">
           <button
-            onClick={(e) => { e.stopPropagation(); onEdit(record) }}
+            onClick={(e) => { e.stopPropagation(); onOpen(record) }}
             className="px-3 py-1.5 text-xs font-semibold tracking-wide transition-colors"
             style={{ border: '1px solid var(--c-primary)', color: 'var(--c-primary)' }}
             onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--c-primary)'; e.currentTarget.style.color = 'white' }}
             onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--c-primary)' }}
           >
-            Edit
+            View
           </button>
           <button
             onClick={(e) => { e.stopPropagation(); onDelete(record) }}
@@ -223,7 +229,104 @@ function MeasurementCard({ record, onEdit, onDelete }) {
   )
 }
 
-function DeleteModal({ record, onConfirm, onCancel, loading }) {
+function DetailModal({ id, onClose, onEdit }) {
+  const [record, setRecord] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
+
+  useEffect(() => {
+    let cancelled = false
+
+    api.get(`/measurement/measurements/${id}/`)
+      .then(data => {
+        if (!cancelled) setRecord(data)
+      })
+      .catch(err => {
+        if (!cancelled) setError(err.data?.detail || err.message || 'Could not load this measurement record.')
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false)
+      })
+
+    return () => { cancelled = true }
+  }, [id])
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.5)' }} onClick={onClose}>
+      <div className="w-full max-w-3xl max-h-[90vh] overflow-y-auto p-6 shadow-xl" style={{ background: 'white' }} onClick={e => e.stopPropagation()}>
+        <div className="flex items-center justify-between mb-5">
+          <div>
+            <p className="section-eyebrow mb-1">Measurement Detail</p>
+            <h3 className="font-display text-xl font-semibold" style={{ color: 'var(--c-primary)' }}>Measurement Record</h3>
+          </div>
+          <button onClick={onClose} className="text-sm font-semibold" style={{ color: 'var(--c-text-muted)' }}>Close</button>
+        </div>
+
+        {loading ? (
+          <div className="flex flex-col items-center justify-center py-16 gap-4">
+            <div className="w-8 h-8 border-2 border-t-transparent rounded-full animate-spin" style={{ borderColor: 'var(--c-primary)', borderTopColor: 'transparent' }} />
+            <p className="text-sm" style={{ color: 'var(--c-text-muted)' }}>Loading measurement…</p>
+          </div>
+        ) : error ? (
+          <div className="px-4 py-3 text-sm" style={{ background: '#FEF2F2', border: '1px solid #FECACA', color: '#DC2626' }}>{error}</div>
+        ) : record ? (
+          <>
+            <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 mb-6">
+              {[
+                ['Record ID', record.id?.slice(0, 8) || '—'],
+                ['Saved', formatDate(record.created_at)],
+                ['Updated', formatDate(record.updated_at)],
+                ['Filled Fields', `${filledCount(record)}/${ALL_FIELDS.length}`],
+              ].map(([label, value]) => (
+                <div key={label} className="p-4" style={{ background: 'var(--c-bg-warm)', border: '1px solid var(--c-border)' }}>
+                  <p className="text-xs font-semibold tracking-wide uppercase mb-1" style={{ color: 'var(--c-text-muted)' }}>{label}</p>
+                  <p className="text-sm font-semibold" style={{ color: 'var(--c-text)' }}>{value}</p>
+                </div>
+              ))}
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <p className="text-xs font-semibold tracking-widest uppercase mb-3" style={{ color: 'var(--c-text-muted)' }}>Upper Body</p>
+                <div className="space-y-2">
+                  {UPPER_BODY_FIELDS.map(field => (
+                    <div key={field.key} className="flex justify-between items-center py-2 border-b" style={{ borderColor: 'var(--c-border)' }}>
+                      <span className="text-sm" style={{ color: 'var(--c-text-muted)' }}>{field.label}</span>
+                      <span className="text-sm font-semibold" style={{ color: record[field.key] ? 'var(--c-text)' : 'var(--c-text-muted)', opacity: record[field.key] ? 1 : 0.45 }}>
+                        {record[field.key] ? `${record[field.key]} in` : '—'}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <p className="text-xs font-semibold tracking-widest uppercase mb-3" style={{ color: 'var(--c-text-muted)' }}>Lower Body</p>
+                <div className="space-y-2">
+                  {LOWER_BODY_FIELDS.map(field => (
+                    <div key={field.key} className="flex justify-between items-center py-2 border-b" style={{ borderColor: 'var(--c-border)' }}>
+                      <span className="text-sm" style={{ color: 'var(--c-text-muted)' }}>{field.label}</span>
+                      <span className="text-sm font-semibold" style={{ color: record[field.key] ? 'var(--c-text)' : 'var(--c-text-muted)', opacity: record[field.key] ? 1 : 0.45 }}>
+                        {record[field.key] ? `${record[field.key]} in` : '—'}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="flex gap-3 mt-6">
+              <button onClick={() => onEdit(record)} className="btn-primary">Edit Record</button>
+              <button onClick={onClose} className="btn-secondary">Done</button>
+            </div>
+          </>
+        ) : null}
+      </div>
+    </div>
+  )
+}
+
+function DeleteModal({ onConfirm, onCancel, loading }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.5)' }}>
       <div className="w-full max-w-sm p-6 shadow-xl" style={{ background: 'white' }}>
@@ -275,6 +378,12 @@ export default function MeasurementPage() {
   const [records, setRecords]     = useState([])
   const [loading, setLoading]     = useState(true)
   const [error, setError]         = useState(null)
+  const [sortOrder, setSortOrder] = useState('-created_at')
+  const [page, setPage]           = useState(1)
+  const [totalCount, setTotalCount] = useState(0)
+  const [nextUrl, setNextUrl]     = useState(null)
+  const [prevUrl, setPrevUrl]     = useState(null)
+  const [detailId, setDetailId]   = useState(null)
 
   // Form state
   const [formMode, setFormMode]   = useState(null) // null | 'create' | 'edit'
@@ -296,22 +405,27 @@ export default function MeasurementPage() {
     if (!authLoading && !isAuthenticated) navigate('/login', { replace: true })
   }, [authLoading, isAuthenticated, navigate])
 
-  const fetchRecords = useCallback(async () => {
+  const fetchRecords = useCallback(async (pg = page, ordering = sortOrder) => {
     setLoading(true)
     setError(null)
     try {
-      const data = await api.get('/measurement/measurements/')
-      setRecords(Array.isArray(data) ? data : (data.results ?? []))
+      const params = new URLSearchParams({ page: pg, ordering })
+      const data = await api.get(`/measurement/measurements/?${params}`)
+      const items = Array.isArray(data) ? data : (data.results ?? [])
+      setRecords(items)
+      setTotalCount(Array.isArray(data) ? items.length : (data.count ?? items.length))
+      setNextUrl(Array.isArray(data) ? null : (data.next ?? null))
+      setPrevUrl(Array.isArray(data) ? null : (data.previous ?? null))
     } catch (err) {
       setError(err.data?.detail || err.message || 'Could not load measurements.')
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [page, sortOrder])
 
   useEffect(() => {
-    if (isAuthenticated) fetchRecords()
-  }, [isAuthenticated, fetchRecords])
+    if (isAuthenticated) fetchRecords(page, sortOrder)
+  }, [isAuthenticated, fetchRecords, page, sortOrder])
 
   // ── Form handlers ────────────────────────────────────────────────────────
 
@@ -352,14 +466,15 @@ export default function MeasurementPage() {
     setFormError(null)
 
     // Build payload — only include non-empty fields
-    const payload = {}
+    const createPayload = {}
+    const replacePayload = {}
     ALL_FIELDS.forEach((f) => {
-      if (formValues[f.key] !== '') {
-        payload[f.key] = formValues[f.key]
-      }
+      const raw = formValues[f.key]
+      replacePayload[f.key] = raw === '' ? null : raw
+      if (raw !== '') createPayload[f.key] = raw
     })
 
-    if (Object.keys(payload).length === 0) {
+    if (Object.keys(createPayload).length === 0) {
       setFormError('Please fill in at least one measurement field.')
       return
     }
@@ -367,15 +482,15 @@ export default function MeasurementPage() {
     setSubmitting(true)
     try {
       if (formMode === 'create') {
-        await api.post('/measurement/measurements/', payload)
+        await api.post('/measurement/measurements/', createPayload)
         setSuccessMsg('Measurement saved successfully.')
       } else {
-        await api.patch(`/measurement/measurements/${editingId}/`, payload)
+        await api.put(`/measurement/measurements/${editingId}/`, replacePayload)
         setSuccessMsg('Measurement updated successfully.')
       }
       setFormMode(null)
       setEditingId(null)
-      await fetchRecords()
+      await fetchRecords(page, sortOrder)
       setTimeout(() => setSuccessMsg(null), 4000)
     } catch (err) {
       const data = err.data
@@ -408,8 +523,13 @@ export default function MeasurementPage() {
     try {
       await api.delete(`/measurement/measurements/${deleteTarget.id}/`)
       setDeleteTarget(null)
-      await fetchRecords()
-    } catch {
+      setSuccessMsg('Measurement deleted successfully.')
+      const nextPage = page > 1 && records.length === 1 ? page - 1 : page
+      setPage(nextPage)
+      await fetchRecords(nextPage, sortOrder)
+      setTimeout(() => setSuccessMsg(null), 4000)
+    } catch (err) {
+      setError(err.data?.detail || err.message || 'Could not delete this measurement.')
       setDeleteTarget(null)
     } finally {
       setDeleteLoading(false)
@@ -429,6 +549,16 @@ export default function MeasurementPage() {
   return (
     <main className="page-transition flex-1 py-12 px-4 sm:px-6" style={{ background: 'var(--c-bg)', minHeight: '60vh' }}>
       <div className="max-w-4xl mx-auto">
+        {detailId && (
+          <DetailModal
+            id={detailId}
+            onClose={() => setDetailId(null)}
+            onEdit={(record) => {
+              setDetailId(null)
+              openEdit(record)
+            }}
+          />
+        )}
 
         {/* ── Page Header ───────────────────────────────────── */}
         <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-8">
@@ -499,7 +629,7 @@ export default function MeasurementPage() {
                 <circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/>
               </svg>
               <p className="text-xs" style={{ color: 'var(--c-text-muted)' }}>
-                Fill in the fields you know. All measurements are in <strong>inches</strong>. Leave fields blank if you're unsure — you can always update later.
+                Fill in the fields you know. All measurements are in <strong>inches</strong>. Leave fields blank if you&apos;re unsure, and you can always update later.
                 At least one field must be filled.
               </p>
             </div>
@@ -615,7 +745,7 @@ export default function MeasurementPage() {
                 No measurements yet
               </p>
               <p className="text-sm max-w-xs" style={{ color: 'var(--c-text-muted)' }}>
-                Add your body measurements once and they'll be ready whenever you place a custom order.
+                Add your body measurements once and they&apos;ll be ready whenever you place a custom order.
               </p>
             </div>
             {formMode === null && (
@@ -629,21 +759,60 @@ export default function MeasurementPage() {
           </div>
         ) : (
           <div>
-            <div className="flex items-center justify-between mb-4">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
               <p className="text-sm" style={{ color: 'var(--c-text-muted)' }}>
-                {records.length} record{records.length !== 1 ? 's' : ''}
+                {totalCount} record{totalCount !== 1 ? 's' : ''}
               </p>
+              <div className="flex items-center gap-3">
+                <label className="text-xs font-semibold tracking-wide uppercase" style={{ color: 'var(--c-text-muted)' }}>Sort</label>
+                <select
+                  value={sortOrder}
+                  onChange={(e) => {
+                    setSortOrder(e.target.value)
+                    setPage(1)
+                  }}
+                  className="py-2 px-3 text-sm"
+                  style={{ border: '1px solid var(--c-border)', background: 'white', color: 'var(--c-text)', outline: 'none' }}
+                >
+                  {SORT_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>{option.label}</option>
+                  ))}
+                </select>
+              </div>
             </div>
             <div className="space-y-3">
               {records.map((rec) => (
                 <MeasurementCard
                   key={rec.id}
                   record={rec}
-                  onEdit={openEdit}
+                  onOpen={(record) => {
+                    setDetailId(record.id)
+                  }}
                   onDelete={setDeleteTarget}
                 />
               ))}
             </div>
+            {(prevUrl || nextUrl) && (
+              <div className="flex items-center justify-between mt-5">
+                <button
+                  onClick={() => setPage((prev) => Math.max(1, prev - 1))}
+                  disabled={!prevUrl}
+                  className="px-4 py-2 text-sm font-medium"
+                  style={{ border: '1px solid var(--c-border)', background: 'white', color: 'var(--c-text)', opacity: prevUrl ? 1 : 0.45, cursor: prevUrl ? 'pointer' : 'not-allowed' }}
+                >
+                  Previous
+                </button>
+                <p className="text-sm" style={{ color: 'var(--c-text-muted)' }}>Page {page}</p>
+                <button
+                  onClick={() => setPage((prev) => prev + 1)}
+                  disabled={!nextUrl}
+                  className="px-4 py-2 text-sm font-medium"
+                  style={{ border: '1px solid var(--c-border)', background: 'white', color: 'var(--c-text)', opacity: nextUrl ? 1 : 0.45, cursor: nextUrl ? 'pointer' : 'not-allowed' }}
+                >
+                  Next
+                </button>
+              </div>
+            )}
           </div>
         )}
 

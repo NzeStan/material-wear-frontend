@@ -3,6 +3,8 @@ import { Link, useNavigate } from 'react-router-dom'
 import { api } from '../../services/api'
 import { useAuth } from '../../context/AuthContext'
 
+const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api'
+
 // ── Icons ──────────────────────────────────────────────────────────────────────
 const SpinnerIcon = ({ size = 16 }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="animate-spin">
@@ -86,12 +88,16 @@ const LockClosedIcon = () => (
 )
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
-function fmt(v) {
-  return `₦${Number(v || 0).toLocaleString('en-NG', { minimumFractionDigits: 2 })}`
-}
-
 function shareableUrl(slug) {
   return `${window.location.origin}/image-bulk-order/${slug}`
+}
+
+function toLocalDatetimeInput(value) {
+  if (!value) return ''
+  const date = new Date(value)
+  const offset = date.getTimezoneOffset()
+  const local = new Date(date.getTime() - offset * 60000)
+  return local.toISOString().slice(0, 16)
 }
 
 // ── Copy to clipboard hook ─────────────────────────────────────────────────────
@@ -375,19 +381,20 @@ function LinkCreatedModal({ link, onClose }) {
 // ══════════════════════════════════════════════════════════════════════════════
 //  COUPON MODAL (admin only)
 // ══════════════════════════════════════════════════════════════════════════════
-function CouponModal({ link, onClose }) {
-  const [count, setCount]     = useState(10)
+function CouponModal({ link, onClose, onGenerated }) {
+  const [count, setCount]     = useState(50)
   const [saving, setSaving]   = useState(false)
   const [success, setSuccess] = useState(null)
   const [error, setError]     = useState('')
 
   async function handleGenerate() {
-    if (count < 1 || count > 100) { setError('Enter a number between 1 and 100'); return }
+    if (count < 1 || count > 1000) { setError('Enter a number between 1 and 1000'); return }
     setSaving(true)
     setError('')
     try {
       const data = await api.post(`/image_bulk_orders/links/${link.slug}/generate_coupons/`, { count })
       setSuccess(data.count)
+      await onGenerated?.()
     } catch (err) {
       setError(err.message || 'Failed to generate coupons.')
     } finally {
@@ -436,10 +443,10 @@ function CouponModal({ link, onClose }) {
               )}
               <div>
                 <label className="block text-sm font-medium mb-1.5" style={{ color: 'var(--c-text)' }}>
-                  Number of Coupons (1–100)
+                  Number of Coupons (1-1000)
                 </label>
                 <input
-                  type="number" min="1" max="100" value={count}
+                  type="number" min="1" max="1000" value={count}
                   onChange={e => setCount(Number(e.target.value))}
                   style={inputStyle(false)}
                 />
@@ -459,16 +466,192 @@ function CouponModal({ link, onClose }) {
   )
 }
 
+function ManageLinkModal({ slug, onClose, onSaved, onDeleted }) {
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [deleting, setDeleting] = useState(false)
+  const [error, setError] = useState('')
+  const [form, setForm] = useState({
+    organization_name: '',
+    price_per_item: '',
+    payment_deadline: '',
+    custom_branding_enabled: false,
+  })
+
+  useEffect(() => {
+    ;(async () => {
+      setLoading(true)
+      setError('')
+      try {
+        const data = await api.get(`/image_bulk_orders/links/${slug}/`)
+        setForm({
+          organization_name: data.organization_name || '',
+          price_per_item: data.price_per_item ?? '',
+          payment_deadline: toLocalDatetimeInput(data.payment_deadline),
+          custom_branding_enabled: !!data.custom_branding_enabled,
+        })
+      } catch (err) {
+        setError(err.message || 'Could not load image order details.')
+      } finally {
+        setLoading(false)
+      }
+    })()
+  }, [slug])
+
+  function setField(key, value) {
+    setForm(prev => ({ ...prev, [key]: value }))
+  }
+
+  async function handleSave(e) {
+    e.preventDefault()
+    setSaving(true)
+    setError('')
+    try {
+      const payload = {
+        organization_name: form.organization_name.trim(),
+        price_per_item: Number(form.price_per_item),
+        payment_deadline: new Date(form.payment_deadline).toISOString(),
+        custom_branding_enabled: form.custom_branding_enabled,
+      }
+      const data = await api.patch(`/image_bulk_orders/links/${slug}/`, payload)
+      onSaved(data)
+      onClose()
+    } catch (err) {
+      setError(err.message || 'Could not save changes.')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  async function handleDelete() {
+    if (!confirm('Delete this image bulk order link permanently?')) return
+    setDeleting(true)
+    setError('')
+    try {
+      await api.delete(`/image_bulk_orders/links/${slug}/`)
+      onDeleted(slug)
+      onClose()
+    } catch (err) {
+      setError(err.message || 'Could not delete image bulk order.')
+      setDeleting(false)
+    }
+  }
+
+  return (
+    <Modal onClose={onClose}>
+      <div className="w-full max-w-lg rounded-2xl overflow-hidden"
+        style={{ background: '#fff', boxShadow: '0 24px 64px rgba(0,0,0,0.25)' }}>
+        <div className="px-6 py-5 flex items-center justify-between"
+          style={{ borderBottom: '1px solid var(--c-border)', background: 'var(--c-bg-warm)' }}>
+          <div>
+            <h2 className="font-display text-xl" style={{ color: 'var(--c-primary)' }}>Manage Image Order</h2>
+            <p className="text-xs mt-0.5" style={{ color: 'var(--c-text-muted)' }}>
+              Update pricing, deadline, and branding settings
+            </p>
+          </div>
+          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-black/5" style={{ color: 'var(--c-text-muted)' }}>
+            <XIcon />
+          </button>
+        </div>
+
+        <form onSubmit={handleSave} className="p-6 space-y-5">
+          {error && (
+            <div className="flex items-start gap-2 p-3 rounded-xl text-sm"
+              style={{ background: 'rgba(239,68,68,0.08)', color: '#dc2626', border: '1px solid rgba(239,68,68,0.2)' }}>
+              <AlertIcon />
+              <span>{error}</span>
+            </div>
+          )}
+
+          {loading ? (
+            <div className="py-10 flex items-center justify-center">
+              <SpinnerIcon size={24} />
+            </div>
+          ) : (
+            <>
+              <div>
+                <label className="block text-sm font-medium mb-1.5" style={{ color: 'var(--c-text)' }}>Organisation Name</label>
+                <input
+                  type="text"
+                  value={form.organization_name}
+                  onChange={e => setField('organization_name', e.target.value)}
+                  style={inputStyle(false)}
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-1.5" style={{ color: 'var(--c-text)' }}>Price per Item (Naira)</label>
+                <input
+                  type="number"
+                  min="1"
+                  step="0.01"
+                  value={form.price_per_item}
+                  onChange={e => setField('price_per_item', e.target.value)}
+                  style={inputStyle(false)}
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-1.5" style={{ color: 'var(--c-text)' }}>Payment Deadline</label>
+                <input
+                  type="datetime-local"
+                  value={form.payment_deadline}
+                  onChange={e => setField('payment_deadline', e.target.value)}
+                  style={inputStyle(false)}
+                />
+              </div>
+
+              <div className="flex items-center justify-between p-4 rounded-xl"
+                style={{ border: '1.5px solid var(--c-border)', background: 'var(--c-bg)' }}>
+                <div>
+                  <p className="text-sm font-medium" style={{ color: 'var(--c-text)' }}>Custom Name Field</p>
+                  <p className="text-xs mt-0.5" style={{ color: 'var(--c-text-muted)' }}>
+                    Let participants submit custom text to be printed with their order
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setField('custom_branding_enabled', !form.custom_branding_enabled)}
+                  className="relative flex-shrink-0 w-11 h-6 rounded-full transition-all duration-200"
+                  style={{ background: form.custom_branding_enabled ? 'var(--c-primary)' : 'var(--c-border)' }}
+                >
+                  <div
+                    className="absolute top-0.5 w-5 h-5 rounded-full bg-white transition-all duration-200"
+                    style={{ left: form.custom_branding_enabled ? '22px' : '2px', boxShadow: '0 1px 3px rgba(0,0,0,0.2)' }}
+                  />
+                </button>
+              </div>
+
+              <div className="flex gap-3 pt-2">
+                <button type="button" onClick={handleDelete} disabled={deleting || saving} className="btn-secondary flex-1">
+                  {deleting ? 'Deleting...' : 'Delete Link'}
+                </button>
+                <button type="submit" disabled={saving || deleting} className="btn-primary flex-1 flex items-center justify-center gap-2">
+                  {saving ? <><SpinnerIcon /><span>Saving...</span></> : 'Save Changes'}
+                </button>
+              </div>
+            </>
+          )}
+        </form>
+      </div>
+    </Modal>
+  )
+}
+
 // ══════════════════════════════════════════════════════════════════════════════
 //  ORDER LINK CARD
 // ══════════════════════════════════════════════════════════════════════════════
-function OrderLinkCard({ link, isAdmin }) {
+function OrderLinkCard({ link, isAdmin, onSaved, onDeleted }) {
   const [expanded, setExpanded]       = useState(false)
   const [stats, setStats]             = useState(null)
   const [statsLoading, setStatsLoading] = useState(false)
   const [showCoupons, setShowCoupons] = useState(false)
+  const [showManage, setShowManage]   = useState(false)
   const [urlCopied, copyUrl]          = useCopy()
   const [downloading, setDownloading] = useState(null)
+  const [coupons, setCoupons]         = useState([])
+  const [couponsLoading, setCouponsLoading] = useState(false)
+  const [couponsError, setCouponsError] = useState('')
 
   const url       = shareableUrl(link.slug)
   const isExpired = link.is_expired
@@ -478,29 +661,57 @@ function OrderLinkCard({ link, isAdmin }) {
   })
 
   async function loadStats() {
-    if (stats) return
+    if (stats) return stats
     setStatsLoading(true)
     try {
       const data = await api.get(`/image_bulk_orders/links/${link.slug}/stats/`)
       setStats(data)
+      return data
     } finally {
       setStatsLoading(false)
     }
   }
 
+  async function loadCoupons({ force = false } = {}) {
+    if (coupons.length && !force) return
+    setCouponsLoading(true)
+    setCouponsError('')
+    try {
+      const data = await api.get(`/image_bulk_orders/coupons/?bulk_order_slug=${link.slug}`)
+      setCoupons(Array.isArray(data) ? data : (data?.results ?? []))
+    } catch (err) {
+      setCouponsError(err.message || 'Could not load coupons.')
+    } finally {
+      setCouponsLoading(false)
+    }
+  }
+
   function handleToggle() {
     setExpanded(x => !x)
-    if (!expanded) loadStats()
+    if (!expanded) {
+      loadStats()
+      if (isAdmin) loadCoupons()
+    }
+  }
+
+  async function handleCouponsGenerated() {
+    setStats(null)
+    setCoupons([])
+    const freshStats = await api.get(`/image_bulk_orders/links/${link.slug}/stats/`)
+    setStats(freshStats)
+    await loadCoupons({ force: true })
   }
 
   async function handleDownload(type) {
     setDownloading(type)
     try {
-      const token = api.getToken()
-      const BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api'
-      const paramMap = { pdf: '?download=pdf', word: '?download=word', excel: '?download=excel' }
-      const res = await fetch(`${BASE_URL}/image_bulk_orders/links/${link.slug}/paid_orders/${paramMap[type] || ''}`, {
-        headers: token ? { Authorization: `Token ${token}` } : {},
+      const endpoints = {
+        pdf: `/image_bulk_orders/links/${link.slug}/download_pdf/`,
+        word: `/image_bulk_orders/links/${link.slug}/download_word/`,
+        excel: `/image_bulk_orders/links/${link.slug}/generate_size_summary/`,
+      }
+      const res = await fetch(`${API_BASE}${endpoints[type]}`, {
+        headers: api.getAuthHeader(),
       })
       if (!res.ok) throw new Error('Download failed')
       const blob = await res.blob()
@@ -520,6 +731,7 @@ function OrderLinkCard({ link, isAdmin }) {
   const paidPct = stats
     ? Math.round((stats.paid_orders / Math.max(stats.total_orders, 1)) * 100)
     : 0
+  const hasCoupons = (stats?.total_coupons ?? link.coupon_count ?? coupons.length) > 0
 
   const waText = encodeURIComponent(
     `Hi! Here is the image order link for *${link.organization_name}*.\n\nUpload your image & register here:\n${url}\n\nDeadline: ${deadlineStr}\nPrice: ₦${Number(link.price_per_item).toLocaleString()} (+ VAT)`
@@ -527,7 +739,21 @@ function OrderLinkCard({ link, isAdmin }) {
 
   return (
     <>
-      {showCoupons && <CouponModal link={link} onClose={() => setShowCoupons(false)} />}
+      {showCoupons && (
+        <CouponModal
+          link={link}
+          onClose={() => setShowCoupons(false)}
+          onGenerated={handleCouponsGenerated}
+        />
+      )}
+      {showManage && (
+        <ManageLinkModal
+          slug={link.slug}
+          onClose={() => setShowManage(false)}
+          onSaved={onSaved}
+          onDeleted={onDeleted}
+        />
+      )}
 
       <div
         className="rounded-2xl overflow-hidden"
@@ -661,11 +887,10 @@ function OrderLinkCard({ link, isAdmin }) {
               )}
             </div>
 
-            {/* Admin tools */}
-            {isAdmin && (
-              <div>
+            {/* Organiser tools */}
+            <div>
                 <p className="text-xs uppercase tracking-widest font-semibold mb-3" style={{ color: 'var(--c-text-muted)' }}>
-                  Admin Tools
+                  Organiser Tools
                 </p>
                 <div className="grid grid-cols-2 gap-2">
                   {[
@@ -690,25 +915,95 @@ function OrderLinkCard({ link, isAdmin }) {
                   ))}
 
                   <button
-                    onClick={() => setShowCoupons(true)}
+                    onClick={() => setShowManage(true)}
                     className="flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-medium transition-all"
                     style={{ border: '1.5px solid var(--c-border)', background: 'transparent', color: 'var(--c-text)' }}
                   >
-                    <TagIcon /> Generate Coupons
+                    <ExternalLinkIcon /> Manage Link
                   </button>
+
+                  {isAdmin && !hasCoupons && (
+                    <button
+                      onClick={() => setShowCoupons(true)}
+                      className="flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-medium transition-all"
+                      style={{ border: '1.5px solid var(--c-border)', background: 'transparent', color: 'var(--c-text)' }}
+                    >
+                      <TagIcon /> Generate Coupons
+                    </button>
+                  )}
                 </div>
 
-                {/* Analytics link */}
                 <a
-                  href={`${import.meta.env.VITE_API_BASE_URL || '/api'}/image_bulk_orders/links/${link.slug}/stats/`}
+                  href={`${API_BASE}/image_bulk_orders/links/${link.slug}/paid_orders/`}
                   target="_blank" rel="noopener noreferrer"
                   className="flex items-center justify-center gap-1.5 w-full mt-2 py-2 text-xs"
                   style={{ color: 'var(--c-text-muted)' }}
                 >
-                  <ExternalLinkIcon /> View Raw Analytics JSON
+                  <ExternalLinkIcon /> View Public Paid Orders Page
                 </a>
+
+                {isAdmin && (
+                  <>
+                    <a
+                      href={`${API_BASE}/image_bulk_orders/links/${link.slug}/stats/`}
+                      target="_blank" rel="noopener noreferrer"
+                      className="flex items-center justify-center gap-1.5 w-full mt-2 py-2 text-xs"
+                      style={{ color: 'var(--c-text-muted)' }}
+                    >
+                      <ExternalLinkIcon /> View Raw Analytics JSON
+                    </a>
+
+                    {hasCoupons && (
+                      <p className="text-xs text-center mt-2" style={{ color: 'var(--c-text-muted)' }}>
+                        This image order already has generated coupons.
+                      </p>
+                    )}
+
+                    <div className="mt-4 rounded-xl p-4" style={{ background: 'var(--c-bg)', border: '1px solid var(--c-border)' }}>
+                      <div className="flex items-center justify-between gap-3 mb-3">
+                        <p className="text-xs uppercase tracking-widest font-semibold" style={{ color: 'var(--c-text-muted)' }}>
+                          Coupons
+                        </p>
+                        {!!coupons.length && (
+                          <span className="text-xs font-semibold" style={{ color: 'var(--c-primary)' }}>
+                            {coupons.filter(coupon => !coupon.is_used).length} unused / {coupons.length} total
+                          </span>
+                        )}
+                      </div>
+
+                      {couponsLoading ? (
+                        <div className="flex items-center gap-2 text-sm" style={{ color: 'var(--c-text-muted)' }}>
+                          <SpinnerIcon size={16} />
+                          <span>Loading coupons...</span>
+                        </div>
+                      ) : couponsError ? (
+                        <p className="text-sm" style={{ color: '#dc2626' }}>{couponsError}</p>
+                      ) : coupons.length > 0 ? (
+                        <div className="space-y-2">
+                          {coupons.slice(0, 8).map(coupon => (
+                            <div key={coupon.id} className="flex items-center justify-between rounded-lg px-3 py-2 text-xs"
+                              style={{ background: '#fff', border: '1px solid var(--c-border)' }}>
+                              <span className="font-mono" style={{ color: 'var(--c-text)' }}>{coupon.code}</span>
+                              <span style={{ color: coupon.is_used ? '#10b981' : 'var(--c-text-muted)' }}>
+                                {coupon.is_used ? 'Used' : 'Unused'}
+                              </span>
+                            </div>
+                          ))}
+                          {coupons.length > 8 && (
+                            <p className="text-xs" style={{ color: 'var(--c-text-muted)' }}>
+                              Showing first 8 coupons. Open your admin API list for the full set.
+                            </p>
+                          )}
+                        </div>
+                      ) : (
+                        <p className="text-sm" style={{ color: 'var(--c-text-muted)' }}>
+                          No coupons generated yet for this image order.
+                        </p>
+                      )}
+                    </div>
+                  </>
+                )}
               </div>
-            )}
           </div>
         )}
       </div>
@@ -745,7 +1040,7 @@ export default function ImageOrganizerDashboard() {
     ;(async () => {
       try {
         const data = await api.get('/image_bulk_orders/links/')
-        setLinks(data)
+        setLinks(Array.isArray(data) ? data : (data?.results ?? []))
       } catch (err) {
         setError(err.message || 'Failed to load image order links.')
       } finally {
@@ -758,6 +1053,14 @@ export default function ImageOrganizerDashboard() {
     setShowCreate(false)
     setCreatedLink(newLink)
     setLinks(prev => [newLink, ...prev])
+  }
+
+  function handleSavedLink(updatedLink) {
+    setLinks(prev => prev.map(link => (link.slug === updatedLink.slug ? { ...link, ...updatedLink } : link)))
+  }
+
+  function handleDeletedLink(slug) {
+    setLinks(prev => prev.filter(link => link.slug !== slug))
   }
 
   if (authLoading || (!isAuthenticated && !authLoading)) {
@@ -838,8 +1141,8 @@ export default function ImageOrganizerDashboard() {
               <div>
                 <p className="font-semibold mb-1">Admin features are restricted</p>
                 <p>
-                  PDF/Word/Excel downloads and coupon generation are available to admin accounts only.
-                  Contact us if you need access to these tools.
+                  Coupon generation and coupon code lists are available to admin accounts only.
+                  You can still manage your own image links and download order summaries.
                 </p>
               </div>
             </div>
@@ -903,7 +1206,13 @@ export default function ImageOrganizerDashboard() {
                   </div>
                   <div className="space-y-4">
                     {activeLinks.map(link => (
-                      <OrderLinkCard key={link.id} link={link} isAdmin={isAdmin} />
+                      <OrderLinkCard
+                        key={link.id}
+                        link={link}
+                        isAdmin={isAdmin}
+                        onSaved={handleSavedLink}
+                        onDeleted={handleDeletedLink}
+                      />
                     ))}
                   </div>
                 </div>
@@ -923,7 +1232,13 @@ export default function ImageOrganizerDashboard() {
                   </div>
                   <div className="space-y-4">
                     {expiredLinks.map(link => (
-                      <OrderLinkCard key={link.id} link={link} isAdmin={isAdmin} />
+                      <OrderLinkCard
+                        key={link.id}
+                        link={link}
+                        isAdmin={isAdmin}
+                        onSaved={handleSavedLink}
+                        onDeleted={handleDeletedLink}
+                      />
                     ))}
                   </div>
                 </div>

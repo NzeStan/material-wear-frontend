@@ -163,7 +163,7 @@ export default function ResetPassword() {
             Password updated!
           </h1>
           <p className="text-sm leading-relaxed mb-8" style={{ color: 'var(--c-text-muted)', maxWidth: 340, margin: '0 auto 2rem' }}>
-            Your password has been successfully reset. You'll be redirected to the sign in page in a moment.
+            Your password has been successfully reset. You&apos;ll be redirected to the sign in page in a moment.
           </p>
           <Link to="/login" className="btn-primary inline-flex">
             <span>Sign In Now</span>
@@ -193,7 +193,7 @@ export default function ResetPassword() {
           Set new<br />password
         </h1>
         <p className="text-sm leading-relaxed mb-8" style={{ color: 'var(--c-text-muted)' }}>
-          Choose a strong password that's at least 8 characters long and includes a mix of letters, numbers, and symbols.
+          Choose a strong password that&apos;s at least 8 characters long and includes a mix of letters, numbers, and symbols.
         </p>
 
         {/* Error banner */}

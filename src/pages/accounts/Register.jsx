@@ -45,8 +45,60 @@ const GithubIcon = () => (
 )
 
 const BACKEND = (import.meta.env.VITE_API_BASE_URL || '').replace('/api', '')
-const goToGoogle = () => { window.location.href = `${BACKEND}/accounts/google/login/` }
-const goToGithub = () => { window.location.href = `${BACKEND}/accounts/github/login/` }
+const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || ''
+const SOCIAL_ENTRY = `${BACKEND}/api/auth/social/accounts`
+const goToGoogle = () => { window.location.href = `${SOCIAL_ENTRY}/google/login/` }
+const goToGithub = () => { window.location.href = `${SOCIAL_ENTRY}/github/login/` }
+
+function loadGoogleScript() {
+  return new Promise((resolve, reject) => {
+    if (window.google?.accounts?.oauth2) {
+      resolve(window.google)
+      return
+    }
+
+    const existing = document.querySelector('script[data-google-identity="true"]')
+    if (existing) {
+      existing.addEventListener('load', () => resolve(window.google), { once: true })
+      existing.addEventListener('error', () => reject(new Error('Could not load Google sign-up.')), { once: true })
+      return
+    }
+
+    const script = document.createElement('script')
+    script.src = 'https://accounts.google.com/gsi/client'
+    script.async = true
+    script.defer = true
+    script.dataset.googleIdentity = 'true'
+    script.onload = () => resolve(window.google)
+    script.onerror = () => reject(new Error('Could not load Google sign-up.'))
+    document.head.appendChild(script)
+  })
+}
+
+async function requestGoogleAccessToken() {
+  await loadGoogleScript()
+
+  return new Promise((resolve, reject) => {
+    if (!window.google?.accounts?.oauth2) {
+      reject(new Error('Google sign-up is not available in this browser session.'))
+      return
+    }
+
+    const tokenClient = window.google.accounts.oauth2.initTokenClient({
+      client_id: GOOGLE_CLIENT_ID,
+      scope: 'openid email profile',
+      callback: response => {
+        if (response?.error) {
+          reject(new Error(response.error_description || response.error || 'Google sign-up was cancelled.'))
+          return
+        }
+        resolve(response.access_token)
+      },
+    })
+
+    tokenClient.requestAccessToken({ prompt: 'select_account' })
+  })
+}
 
 // Password strength checker
 function getStrength(pw) {
@@ -63,7 +115,7 @@ const strengthColor = ['', '#EF4444', '#F59E0B', '#10B981', '#064E3B']
 
 // ── Component ─────────────────────────────────────────────────────────────────
 export default function Register() {
-  const { register, isAuthenticated } = useAuth()
+  const { register, loginWithGoogleToken, isAuthenticated } = useAuth()
   const navigate = useNavigate()
 
   const [formData, setFormData] = useState({
@@ -71,6 +123,7 @@ export default function Register() {
   })
   const [errors, setErrors]             = useState({})
   const [loading, setLoading]           = useState(false)
+  const [socialLoading, setSocialLoading] = useState('')
   const [showPw1, setShowPw1]           = useState(false)
   const [showPw2, setShowPw2]           = useState(false)
   const [agreed, setAgreed]             = useState(false)
@@ -106,6 +159,8 @@ export default function Register() {
     setErrors({})
     try {
       await register({
+        first_name: formData.first_name.trim(),
+        last_name: formData.last_name.trim(),
         username:  formData.username,
         email:     formData.email,
         password1: formData.password1,
@@ -132,18 +187,37 @@ export default function Register() {
     if (errors[name]) setErrors(p => ({ ...p, [name]: '' }))
   }
 
+  const handleGoogleApiRegister = async () => {
+    setErrors({})
+    setSocialLoading('google')
+    try {
+      if (!GOOGLE_CLIENT_ID) {
+        goToGoogle()
+        return
+      }
+      const accessToken = await requestGoogleAccessToken()
+      await loginWithGoogleToken(accessToken)
+      navigate('/profile', { replace: true })
+    } catch (err) {
+      setErrors({ form: err.message || 'Google sign-up failed. Please try again.' })
+    } finally {
+      setSocialLoading('')
+    }
+  }
+
   const FieldError = ({ name }) =>
     errors[name] ? <p className="mt-1.5 text-xs" style={{ color: '#DC2626' }}>{errors[name]}</p> : null
 
-  const SocialBtn = ({ onClick, icon, label }) => (
+  const SocialBtn = ({ onClick, icon, label, busy }) => (
     <button
       type="button" onClick={onClick}
+      disabled={!!busy}
       className="flex items-center justify-center gap-2.5 px-4 py-3 text-xs font-medium tracking-wide border transition-all duration-200 w-full"
-      style={{ border: '1.5px solid #D1D5DB', background: 'white', color: 'var(--c-text)' }}
+      style={{ border: '1.5px solid #D1D5DB', background: 'white', color: 'var(--c-text)', opacity: busy ? 0.7 : 1 }}
       onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--c-primary)'; e.currentTarget.style.boxShadow = 'var(--shadow-sm)' }}
       onMouseLeave={e => { e.currentTarget.style.borderColor = '#D1D5DB'; e.currentTarget.style.boxShadow = 'none' }}
     >
-      {icon}<span>Sign up with {label}</span>
+      {icon}<span>{busy ? `Connecting ${label}…` : `Sign up with ${label}`}</span>
     </button>
   )
 
@@ -263,8 +337,11 @@ export default function Register() {
 
           {/* Social signup */}
           <div className="space-y-3 mb-6">
-            <SocialBtn onClick={goToGoogle} icon={<GoogleIcon />} label="Google" />
-            <SocialBtn onClick={goToGithub} icon={<GithubIcon />} label="GitHub" />
+            <SocialBtn onClick={handleGoogleApiRegister} icon={<GoogleIcon />} label="Google" busy={socialLoading === 'google'} />
+            <SocialBtn onClick={goToGithub} icon={<GithubIcon />} label="GitHub" busy={socialLoading === 'github'} />
+            <p className="text-[11px]" style={{ color: 'var(--c-text-light)' }}>
+              Google now talks directly to the social login API. GitHub continues through the secure redirect handoff.
+            </p>
           </div>
 
           {/* Divider */}
@@ -384,23 +461,28 @@ export default function Register() {
 
               {/* Terms */}
               <div>
-                <label className="flex items-start gap-3 cursor-pointer group">
+                <div className="flex items-start gap-3">
                   <div className="relative mt-0.5 flex-shrink-0">
-                    <input type="checkbox" className="sr-only" checked={agreed}
+                    <input
+                      id="register-terms-agreed"
+                      type="checkbox"
+                      className="absolute inset-0 z-10 h-5 w-5 cursor-pointer opacity-0"
+                      checked={agreed}
                       onChange={e => { setAgreed(e.target.checked); if (errors.agreed) setErrors(p => ({ ...p, agreed: '' })) }} />
                     <div
-                      className="w-5 h-5 border-2 flex items-center justify-center transition-all duration-200"
+                      className="w-5 h-5 border-2 flex items-center justify-center transition-all duration-200 pointer-events-none"
                       style={{
                         borderColor: agreed ? 'var(--c-primary)' : (errors.agreed ? '#EF4444' : '#D1D5DB'),
                         background: agreed ? 'var(--c-primary)' : 'white',
                       }}
-                      onClick={() => { setAgreed(p => !p); if (errors.agreed) setErrors(pr => ({ ...pr, agreed: '' })) }}
                     >
                       {agreed && <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg>}
                     </div>
                   </div>
-                  <span className="text-xs leading-relaxed" style={{ color: 'var(--c-text-muted)' }}>
-                    I agree to Material Wear's{' '}
+                  <p className="text-xs leading-relaxed" style={{ color: 'var(--c-text-muted)' }}>
+                    <label htmlFor="register-terms-agreed" className="cursor-pointer">
+                      I agree to Material Wear&apos;s{' '}
+                    </label>
                     <Link to="/terms" className="underline underline-offset-2 font-medium" style={{ color: 'var(--c-text)' }}>
                       Terms of Service
                     </Link>{' '}
@@ -408,8 +490,8 @@ export default function Register() {
                     <Link to="/privacy-policy" className="underline underline-offset-2 font-medium" style={{ color: 'var(--c-text)' }}>
                       Privacy Policy
                     </Link>
-                  </span>
-                </label>
+                  </p>
+                </div>
                 {errors.agreed && (
                   <p className="mt-1.5 text-xs" style={{ color: '#DC2626' }}>{errors.agreed}</p>
                 )}

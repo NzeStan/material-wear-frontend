@@ -1,26 +1,7 @@
 import { useState, useEffect, useRef, useCallback, memo } from 'react'
 import { useLocation } from 'react-router-dom'
 import { api } from '../../services/api'
-
-const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api'
-
-// ── FormData post (for avatar file upload) ────────────────────────────────────
-async function postFormData(endpoint, fd) {
-  const token = api.getToken()
-  const resp = await fetch(`${API_BASE}${endpoint}`, {
-    method: 'POST', credentials: 'include',
-    headers: token ? { Authorization: `Token ${token}` } : {},
-    body: fd,
-  })
-  if (resp.status === 204 || resp.status === 205) return null
-  const data = await resp.json().catch(() => ({ detail: resp.statusText }))
-  if (!resp.ok) {
-    const msg = data?.detail || data?.non_field_errors?.[0] || Object.values(data || {})?.[0]?.[0] || 'Submission failed'
-    const err = new Error(typeof msg === 'string' ? msg : JSON.stringify(msg))
-    err.status = resp.status; err.data = data; throw err
-  }
-  return data
-}
+import { useAuth } from '../../context/AuthContext'
 
 // ── Shared UI primitives ──────────────────────────────────────────────────────
 
@@ -55,6 +36,18 @@ const FormField = memo(function FormField({ id, label, type = 'text', required, 
 
 function Spinner() {
   return <div style={{ width: 22, height: 22, border: '2px solid var(--c-border)', borderTopColor: 'var(--c-primary)', borderRadius: '50%', animation: 'tspin .7s linear infinite' }} />
+}
+
+function getMediaUrl(media) {
+  return media?.thumbnails?.medium || media?.thumbnails?.large || media?.file_url || media?.file || ''
+}
+
+function inferUploadMediaType(file) {
+  if (!file?.type) return 'document'
+  if (file.type.startsWith('image/')) return 'image'
+  if (file.type.startsWith('video/')) return 'video'
+  if (file.type.startsWith('audio/')) return 'audio'
+  return 'document'
 }
 
 function SkeletonCard() {
@@ -103,7 +96,7 @@ function TestimonialCard({ t, onClick }) {
 
       <p style={{ fontSize: 13, lineHeight: 1.65, color: 'var(--c-text-muted)', margin: 0, flex: 1,
         overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 4, WebkitBoxOrient: 'vertical' }}>
-        "{t.content}"
+        &ldquo;{t.content}&rdquo;
       </p>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, paddingTop: 10, borderTop: '1px solid var(--c-border)' }}>
@@ -163,13 +156,31 @@ function TestimonialCard({ t, onClick }) {
 
 function DetailModal({ id, onClose }) {
   const [t, setT] = useState(null)
+  const [mediaItems, setMediaItems] = useState([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    api.get(`/testimonials/testimonials/${id}/`)
-      .then(data => setT(data))
-      .catch(() => {})
-      .finally(() => setLoading(false))
+    let cancelled = false
+
+    Promise.allSettled([
+      api.get(`/testimonials/testimonials/${id}/`),
+      api.get(`/testimonials/media/?testimonial=${id}&ordering=order`),
+    ])
+      .then(([testimonialRes, mediaRes]) => {
+        if (cancelled) return
+        if (testimonialRes.status === 'fulfilled') {
+          setT(testimonialRes.value)
+        }
+        if (mediaRes.status === 'fulfilled') {
+          const data = mediaRes.value
+          setMediaItems(Array.isArray(data) ? data : (data.results || []))
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false)
+      })
+
+    return () => { cancelled = true }
   }, [id])
 
   const initials = t ? (t.author_display || t.author_name || '?')[0].toUpperCase() : ''
@@ -252,18 +263,18 @@ function DetailModal({ id, onClose }) {
 
               {/* Title + content */}
               {t.title && <p style={{ fontSize: 15, fontWeight: 700, color: 'var(--c-text)', marginBottom: 10 }}>{t.title}</p>}
-              <p style={{ fontSize: 14, lineHeight: 1.8, color: 'var(--c-text-muted)', whiteSpace: 'pre-wrap' }}>"{t.content}"</p>
+              <p style={{ fontSize: 14, lineHeight: 1.8, color: 'var(--c-text-muted)', whiteSpace: 'pre-wrap' }}>&ldquo;{t.content}&rdquo;</p>
 
               {/* Media */}
-              {t.media?.length > 0 && (
+              {(mediaItems.length > 0 || t.media?.length > 0) && (
                 <div style={{ marginTop: 20 }}>
                   <p style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--c-text-muted)', marginBottom: 10 }}>Attachments</p>
                   <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                    {t.media.map(m => (
-                      m.media_type === 'IMAGE' ? (
-                        <img key={m.id} src={m.file} alt={m.title || ''} style={{ width: 80, height: 80, borderRadius: 6, objectFit: 'cover', border: '1px solid var(--c-border)' }} />
+                    {(mediaItems.length > 0 ? mediaItems : t.media).map(m => (
+                      String(m.media_type).toLowerCase() === 'image' ? (
+                        <img key={m.id} src={getMediaUrl(m)} alt={m.title || ''} style={{ width: 80, height: 80, borderRadius: 6, objectFit: 'cover', border: '1px solid var(--c-border)' }} />
                       ) : (
-                        <a key={m.id} href={m.file} target="_blank" rel="noopener noreferrer"
+                        <a key={m.id} href={getMediaUrl(m)} target="_blank" rel="noopener noreferrer"
                           style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--c-primary)', padding: '6px 12px', border: '1px solid var(--c-border)', borderRadius: 6 }}>
                           📎 {m.title || 'Attachment'}
                         </a>
@@ -300,6 +311,7 @@ function DetailModal({ id, onClose }) {
 // IMPORTANT: FormField is module-level — no focus loss on re-render
 
 function SubmitForm({ categories, onSuccess }) {
+  const { isAuthenticated } = useAuth()
   const [form, setForm] = useState({
     author_name: '', author_email: '', author_phone: '', location: '', company: '',
     title: '', content: '', rating: 0, category: '', is_anonymous: false,
@@ -308,10 +320,13 @@ function SubmitForm({ categories, onSuccess }) {
   const [avatar, setAvatar]       = useState(null)
   const [avatarPreview, setAvatarPreview] = useState(null)
   const [avatarError, setAvatarError] = useState('')
+  const [attachments, setAttachments] = useState([])
+  const [attachmentError, setAttachmentError] = useState('')
   const [errors, setErrors]       = useState({})
   const [submitting, setSubmitting] = useState(false)
   const [hover, setHover]         = useState(0)
   const fileInputRef              = useRef(null)
+  const attachmentInputRef        = useRef(null)
 
   const set = useCallback((field, value) => {
     setForm(p => ({ ...p, [field]: value }))
@@ -343,6 +358,66 @@ function SubmitForm({ categories, onSuccess }) {
     setAvatarError('')
     if (fileInputRef.current) fileInputRef.current.value = ''
   }
+
+  function handleAttachments(e) {
+    const picked = Array.from(e.target.files || [])
+    if (!picked.length) return
+
+    const allowed = [
+      'image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif',
+      'video/mp4', 'video/webm', 'video/quicktime',
+    ]
+
+    const next = []
+    const issues = []
+    const remainingSlots = Math.max(0, 4 - attachments.length)
+
+    picked.slice(0, remainingSlots).forEach(file => {
+      if (!allowed.includes(file.type)) {
+        issues.push(`${file.name}: only images or short videos are allowed.`)
+        return
+      }
+
+      const isVideo = file.type.startsWith('video/')
+      const maxSize = isVideo ? 25 * 1024 * 1024 : 8 * 1024 * 1024
+      if (file.size > maxSize) {
+        issues.push(`${file.name}: ${isVideo ? 'video' : 'image'} is too large.`)
+        return
+      }
+
+      next.push({
+        id: `${file.name}-${file.size}-${file.lastModified}`,
+        file,
+        preview: file.type.startsWith('image/') ? URL.createObjectURL(file) : '',
+        mediaType: inferUploadMediaType(file),
+      })
+    })
+
+    if (picked.length > remainingSlots) {
+      issues.push('You can attach up to 4 files per review.')
+    }
+
+    setAttachments(prev => [...prev, ...next])
+    setAttachmentError(issues[0] || '')
+    if (attachmentInputRef.current) attachmentInputRef.current.value = ''
+  }
+
+  function removeAttachment(id) {
+    setAttachments(prev => {
+      const item = prev.find(entry => entry.id === id)
+      if (item?.preview) URL.revokeObjectURL(item.preview)
+      return prev.filter(entry => entry.id !== id)
+    })
+  }
+
+  useEffect(() => {
+    return () => {
+      if (avatarPreview) URL.revokeObjectURL(avatarPreview)
+      attachments.forEach(item => {
+        if (item.preview) URL.revokeObjectURL(item.preview)
+      })
+    }
+  }, [avatarPreview, attachments])
 
   const validate = () => {
     const e = {}
@@ -381,8 +456,32 @@ function SubmitForm({ categories, onSuccess }) {
       if (form.twitter.trim())   social.twitter   = form.twitter.trim()
       if (Object.keys(social).length) fd.append('social_media', JSON.stringify(social))
 
-      await postFormData('/testimonials/testimonials/', fd)
-      onSuccess()
+      const created = await api.post('/testimonials/testimonials/', fd)
+
+      let mediaNotice = ''
+      if (attachments.length > 0) {
+        if (isAuthenticated && created?.id) {
+          const uploads = await Promise.allSettled(
+            attachments.map(item => {
+              const mediaFd = new FormData()
+              mediaFd.append('testimonial', created.id)
+              mediaFd.append('file', item.file)
+              mediaFd.append('media_type', item.mediaType)
+              mediaFd.append('title', item.file.name)
+              return api.post('/testimonials/media/', mediaFd)
+            })
+          )
+
+          const failed = uploads.filter(result => result.status === 'rejected').length
+          if (failed > 0) {
+            mediaNotice = `${failed} attachment${failed > 1 ? 's were' : ' was'} not saved.`
+          }
+        } else {
+          mediaNotice = 'Your review was submitted, but attachments require sign-in with the current API setup.'
+        }
+      }
+
+      onSuccess({ mediaNotice })
     } catch (err) {
       const msg = err.data
         ? Object.entries(err.data).map(([k, v]) => `${k}: ${Array.isArray(v) ? v[0] : v}`).join('; ')
@@ -425,6 +524,62 @@ function SubmitForm({ categories, onSuccess }) {
           <input ref={fileInputRef} type="file" accept=".jpg,.jpeg,.png,.webp,.gif" onChange={handleAvatar} style={{ display: 'none' }} />
         </div>
         {avatarError && <p style={{ fontSize: 12, color: '#dc2626', marginTop: 6 }}>{avatarError}</p>}
+      </div>
+
+      <div style={{ marginBottom: 20 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'flex-start', marginBottom: 8, flexWrap: 'wrap' }}>
+          <div>
+            <p style={{ fontSize: 12, fontWeight: 600, color: 'var(--c-text)', marginBottom: 4 }}>
+              Experience Photos / Videos <span style={{ color: 'var(--c-text-muted)', fontWeight: 400 }}>(optional)</span>
+            </p>
+            <p style={{ fontSize: 11, color: 'var(--c-text-muted)', margin: 0, lineHeight: 1.6 }}>
+              This is a strong addition for trust. Images and short videos make reviews feel much more real.
+              {!isAuthenticated && ' With the current API, attachments can only be saved for signed-in users.'}
+            </p>
+          </div>
+          <button type="button" onClick={() => attachmentInputRef.current?.click()}
+            style={{ fontSize: 12, fontWeight: 700, padding: '8px 14px', borderRadius: 6, border: '1px solid var(--c-border)', background: 'white', cursor: 'pointer', color: 'var(--c-text)' }}>
+            Add Media
+          </button>
+          <input
+            ref={attachmentInputRef}
+            type="file"
+            accept=".jpg,.jpeg,.png,.webp,.gif,.mp4,.webm,.mov"
+            multiple
+            onChange={handleAttachments}
+            style={{ display: 'none' }}
+          />
+        </div>
+
+        {attachments.length > 0 && (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 10 }}>
+            {attachments.map(item => (
+              <div key={item.id} style={{ border: '1px solid var(--c-border)', borderRadius: 8, overflow: 'hidden', background: 'white' }}>
+                <div style={{ height: 108, background: 'var(--c-bg-warm)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  {item.mediaType === 'image' ? (
+                    <img src={item.preview} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, color: 'var(--c-text-muted)', fontSize: 12 }}>
+                      <span style={{ fontSize: 24 }}>▶</span>
+                      <span>Video</span>
+                    </div>
+                  )}
+                </div>
+                <div style={{ padding: '10px 10px 12px' }}>
+                  <p style={{ fontSize: 11, fontWeight: 600, color: 'var(--c-text)', margin: '0 0 8px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {item.file.name}
+                  </p>
+                  <button type="button" onClick={() => removeAttachment(item.id)}
+                    style={{ fontSize: 11, fontWeight: 600, padding: 0, border: 'none', background: 'none', color: '#dc2626', cursor: 'pointer' }}>
+                    Remove
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {attachmentError && <p style={{ fontSize: 12, color: '#dc2626', marginTop: 6 }}>{attachmentError}</p>}
       </div>
 
       {/* Name + email + phone */}
@@ -539,6 +694,7 @@ export default function TestimonialsPage() {
   const [catFilter,    setCatFilter]    = useState(null)
   const [categories,   setCategories]   = useState([])
   const [submitted,    setSubmitted]    = useState(false)
+  const [submissionNotice, setSubmissionNotice] = useState('')
   const [detailId,     setDetailId]     = useState(null)
 
   // page title
@@ -711,8 +867,13 @@ export default function TestimonialsPage() {
                 </div>
                 <h3 className="font-display" style={{ fontSize: 24, color: 'var(--c-primary)', marginBottom: 8 }}>Thank you!</h3>
                 <p style={{ fontSize: 13, color: 'var(--c-text-muted)', lineHeight: 1.7 }}>
-                  Your review has been submitted and is awaiting moderation.<br />We'll publish it shortly — thank you for sharing your experience.
+                  Your review has been submitted and is awaiting moderation.<br />We&apos;ll publish it shortly. Thank you for sharing your experience.
                 </p>
+                {submissionNotice && (
+                  <p style={{ fontSize: 12, color: '#92400e', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 8, padding: '10px 12px', marginTop: 14, lineHeight: 1.6 }}>
+                    {submissionNotice}
+                  </p>
+                )}
               </div>
             ) : (
               <>
@@ -721,7 +882,8 @@ export default function TestimonialsPage() {
                 <p style={{ fontSize: 13, color: 'var(--c-text-muted)', marginBottom: 28, lineHeight: 1.6 }}>
                   Help others discover Material Wear by leaving an honest review.
                 </p>
-                <SubmitForm categories={categories} onSuccess={() => {
+                <SubmitForm categories={categories} onSuccess={({ mediaNotice } = {}) => {
+                  setSubmissionNotice(mediaNotice || '')
                   setSubmitted(true)
                   submitRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
                 }} />

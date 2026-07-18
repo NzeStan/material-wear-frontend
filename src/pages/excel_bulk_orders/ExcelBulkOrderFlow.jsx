@@ -1,32 +1,9 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { api } from '../../services/api'
 import { CONTACT } from '../../config/constants'
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api'
-
-// ── Multipart upload helper ────────────────────────────────────────────────────
-async function postMultipart(endpoint, formData) {
-  const token = api.getToken()
-  const res = await fetch(`${BASE_URL}${endpoint}`, {
-    method: 'POST',
-    credentials: 'include',
-    headers: token ? { Authorization: `Token ${token}` } : {},
-    body: formData,
-  })
-  const data = await res.json().catch(() => ({ detail: res.statusText }))
-  if (!res.ok) {
-    const err = new Error(
-      data?.detail ||
-      data?.non_field_errors?.[0] ||
-      Object.values(data || {})?.[0]?.[0] ||
-      'Request failed'
-    )
-    err.data = data
-    throw err
-  }
-  return data
-}
 
 // ── Icons ──────────────────────────────────────────────────────────────────────
 const SpinnerIcon = ({ size = 16 }) => (
@@ -262,6 +239,12 @@ export default function ExcelBulkOrderFlow() {
   const [order, setOrder]       = useState(null)
   const [loading, setLoading]   = useState(true)
   const [error, setError]       = useState('')
+  const [participants, setParticipants] = useState([])
+  const [participantsLoading, setParticipantsLoading] = useState(false)
+  const [participantsError, setParticipantsError] = useState('')
+  const [settingsForm, setSettingsForm] = useState(null)
+  const [settingsSaving, setSettingsSaving] = useState(false)
+  const [settingsError, setSettingsError] = useState('')
 
   // Upload state
   const [uploadFile, setUploadFile] = useState(null)
@@ -286,28 +269,51 @@ export default function ExcelBulkOrderFlow() {
     return () => { document.title = 'Material Wear Limited' }
   }, [])
 
-  useEffect(() => { loadOrder() }, [id])
+  const loadParticipants = useCallback(async () => {
+    setParticipantsLoading(true)
+    setParticipantsError('')
+    try {
+      const data = await api.get(`/excel-participants/?bulk_order=${id}`)
+      setParticipants(Array.isArray(data) ? data : (data.results || []))
+    } catch (err) {
+      setParticipantsError(err.message || 'Could not load participants.')
+    } finally {
+      setParticipantsLoading(false)
+    }
+  }, [id])
 
-  async function loadOrder() {
+  const loadOrder = useCallback(async () => {
     setLoading(true)
     try {
       const data = await api.get(`/excel-bulk-orders/${id}/`)
       setOrder(data)
+      setSettingsForm({
+        title: data.title || '',
+        coordinator_name: data.coordinator_name || '',
+        coordinator_email: data.coordinator_email || '',
+        coordinator_phone: data.coordinator_phone || '',
+        price_per_participant: data.price_per_participant ?? '',
+        requires_custom_name: !!data.requires_custom_name,
+      })
       document.title = `${data.title} — Excel Bulk Order — Material Wear`
+      if (data.payment_status || data.validation_status === 'completed') {
+        await loadParticipants()
+      }
     } catch {
       setError('Order not found or you do not have access to it.')
     } finally {
       setLoading(false)
     }
-  }
+  }, [id, loadParticipants])
+
+  useEffect(() => { loadOrder() }, [loadOrder])
 
   async function handleDownloadTemplate() {
     if (!order?.template_file) return
     setDownloading(true)
     try {
-      const token = api.getToken()
       const res = await fetch(`${BASE_URL}/excel-bulk-orders/${id}/download-template/`, {
-        headers: token ? { Authorization: `Token ${token}` } : {},
+        headers: api.getAuthHeader(),
       })
       if (!res.ok) throw new Error('Download failed')
       const blob = await res.blob()
@@ -331,7 +337,7 @@ export default function ExcelBulkOrderFlow() {
     try {
       const fd = new FormData()
       fd.append('excel_file', uploadFile)
-      const data = await postMultipart(`/excel-bulk-orders/${id}/upload/`, fd)
+      const data = await api.post(`/excel-bulk-orders/${id}/upload/`, fd)
       setOrder(data)
       setUploadFile(null)
       setValidationResult(null)
@@ -368,6 +374,40 @@ export default function ExcelBulkOrderFlow() {
     } catch (err) {
       setPayError(err.message || 'Payment initialization failed. Please try again.')
       setPaying(false)
+    }
+  }
+
+  function setSettingsField(field, value) {
+    setSettingsForm(prev => ({ ...prev, [field]: value }))
+    setSettingsError('')
+  }
+
+  async function handleSaveSettings() {
+    if (!settingsForm) return
+    setSettingsSaving(true)
+    setSettingsError('')
+    try {
+      const data = await api.patch(`/excel-bulk-orders/${id}/`, {
+        title: settingsForm.title,
+        coordinator_name: settingsForm.coordinator_name,
+        coordinator_email: settingsForm.coordinator_email,
+        coordinator_phone: settingsForm.coordinator_phone,
+        price_per_participant: Number(settingsForm.price_per_participant),
+        requires_custom_name: settingsForm.requires_custom_name,
+      })
+      setOrder(data)
+      setSettingsForm({
+        title: data.title || '',
+        coordinator_name: data.coordinator_name || '',
+        coordinator_email: data.coordinator_email || '',
+        coordinator_phone: data.coordinator_phone || '',
+        price_per_participant: data.price_per_participant ?? '',
+        requires_custom_name: !!data.requires_custom_name,
+      })
+    } catch (err) {
+      setSettingsError(err.message || 'Could not save campaign settings.')
+    } finally {
+      setSettingsSaving(false)
     }
   }
 
@@ -496,9 +536,78 @@ export default function ExcelBulkOrderFlow() {
                   <Link to="/excel-my-orders" className="btn-primary inline-flex items-center gap-2 justify-center">
                     View All My Orders
                   </Link>
+                  <a
+                    href={`/api/excel-bulk-orders/${id}/paid-participants/`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="btn-secondary inline-flex items-center gap-2 justify-center"
+                  >
+                    View Paid Participants
+                  </a>
                   <Link to="/excel-bulk-order/new" className="btn-secondary inline-flex items-center gap-2 justify-center">
                     Create Another Order
                   </Link>
+                </div>
+              </div>
+            )}
+
+            {vs === 'completed' && (
+              <div className="rounded-2xl overflow-hidden"
+                style={{ border: '1px solid var(--c-border)', background: '#fff' }}>
+                <div className="px-6 py-5 flex items-center justify-between gap-3"
+                  style={{ borderBottom: '1px solid var(--c-border)', background: 'var(--c-bg-warm)' }}>
+                  <div>
+                    <h3 className="font-display text-lg" style={{ color: 'var(--c-primary)' }}>Participant Roster</h3>
+                    <p className="text-xs" style={{ color: 'var(--c-text-muted)' }}>
+                      Loaded from the participant endpoint for this bulk order
+                    </p>
+                  </div>
+                  <button
+                    onClick={loadParticipants}
+                    className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm"
+                    style={{ background: 'white', color: 'var(--c-text)', border: '1px solid var(--c-border)' }}
+                  >
+                    <RefreshIcon /> Refresh
+                  </button>
+                </div>
+                <div className="px-6 py-5">
+                  {participantsLoading && (
+                    <p className="text-sm" style={{ color: 'var(--c-text-muted)' }}>Loading participants...</p>
+                  )}
+                  {participantsError && <ErrorBanner message={participantsError} />}
+                  {!participantsLoading && !participantsError && participants.length > 0 && (
+                    <div className="overflow-x-auto">
+                      <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                        <thead>
+                          <tr style={{ textAlign: 'left', borderBottom: '1px solid var(--c-border)' }}>
+                            {['Row', 'Name', 'Size', 'Custom Name', 'Coupon'].map(label => (
+                              <th key={label} style={{ padding: '0.75rem 0.5rem', fontSize: 12, color: 'var(--c-text-muted)', fontWeight: 700 }}>
+                                {label}
+                              </th>
+                            ))}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {participants.map(participant => (
+                            <tr key={participant.id} style={{ borderBottom: '1px solid var(--c-border)' }}>
+                              <td style={{ padding: '0.75rem 0.5rem', fontSize: 13, color: 'var(--c-text)' }}>{participant.row_number}</td>
+                              <td style={{ padding: '0.75rem 0.5rem', fontSize: 13, color: 'var(--c-text)' }}>{participant.full_name}</td>
+                              <td style={{ padding: '0.75rem 0.5rem', fontSize: 13, color: 'var(--c-text)' }}>{participant.size}</td>
+                              <td style={{ padding: '0.75rem 0.5rem', fontSize: 13, color: 'var(--c-text-muted)' }}>{participant.custom_name || '—'}</td>
+                              <td style={{ padding: '0.75rem 0.5rem', fontSize: 13, color: participant.is_coupon_applied ? '#15803d' : 'var(--c-text-muted)' }}>
+                                {participant.coupon_status}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                  {!participantsLoading && !participantsError && participants.length === 0 && (
+                    <p className="text-sm" style={{ color: 'var(--c-text-muted)' }}>
+                      No participants found yet. Try refreshing if payment completed recently.
+                    </p>
+                  )}
                 </div>
               </div>
             )}
@@ -666,6 +775,11 @@ export default function ExcelBulkOrderFlow() {
                   <div className="flex gap-3 text-sm text-center">
                     {(() => {
                       const s = order.validation_summary || validationResult?.summary || {}
+                      const errorRows = s.error_rows ?? (
+                        typeof s.total_rows === 'number' && typeof s.valid_rows === 'number'
+                          ? s.total_rows - s.valid_rows
+                          : '—'
+                      )
                       return (
                         <>
                           <div>
@@ -677,7 +791,7 @@ export default function ExcelBulkOrderFlow() {
                             <p className="text-xs" style={{ color: 'var(--c-text-muted)' }}>Valid</p>
                           </div>
                           <div>
-                            <p className="font-bold" style={{ color: '#ef4444' }}>{s.error_rows ?? (s.total_rows - s.valid_rows) ?? '—'}</p>
+                            <p className="font-bold" style={{ color: '#ef4444' }}>{errorRows}</p>
                             <p className="text-xs" style={{ color: 'var(--c-text-muted)' }}>Errors</p>
                           </div>
                         </>
@@ -812,6 +926,64 @@ export default function ExcelBulkOrderFlow() {
           {/* SIDEBAR */}
           <aside className="lg:col-span-2 space-y-4">
 
+            {settingsForm && vs !== 'completed' && (
+              <div className="rounded-2xl p-5" style={{ border: '1px solid var(--c-border)', background: '#fff' }}>
+                <div className="flex items-center gap-2 mb-4" style={{ color: 'var(--c-primary)' }}>
+                  <ExcelIcon />
+                  <h3 className="font-display text-base">Campaign Settings</h3>
+                </div>
+                <div className="space-y-3">
+                  <input
+                    value={settingsForm.title}
+                    onChange={e => setSettingsField('title', e.target.value)}
+                    placeholder="Campaign title"
+                    style={{ width: '100%', padding: '0.75rem 0.9rem', borderRadius: 10, border: '1px solid var(--c-border)', background: 'var(--c-bg)' }}
+                  />
+                  <input
+                    value={settingsForm.coordinator_name}
+                    onChange={e => setSettingsField('coordinator_name', e.target.value)}
+                    placeholder="Coordinator name"
+                    style={{ width: '100%', padding: '0.75rem 0.9rem', borderRadius: 10, border: '1px solid var(--c-border)', background: 'var(--c-bg)' }}
+                  />
+                  <input
+                    value={settingsForm.coordinator_email}
+                    onChange={e => setSettingsField('coordinator_email', e.target.value)}
+                    placeholder="Coordinator email"
+                    style={{ width: '100%', padding: '0.75rem 0.9rem', borderRadius: 10, border: '1px solid var(--c-border)', background: 'var(--c-bg)' }}
+                  />
+                  <input
+                    value={settingsForm.coordinator_phone}
+                    onChange={e => setSettingsField('coordinator_phone', e.target.value)}
+                    placeholder="Coordinator phone"
+                    style={{ width: '100%', padding: '0.75rem 0.9rem', borderRadius: 10, border: '1px solid var(--c-border)', background: 'var(--c-bg)' }}
+                  />
+                  <input
+                    type="number"
+                    value={settingsForm.price_per_participant}
+                    onChange={e => setSettingsField('price_per_participant', e.target.value)}
+                    placeholder="Price per participant"
+                    style={{ width: '100%', padding: '0.75rem 0.9rem', borderRadius: 10, border: '1px solid var(--c-border)', background: 'var(--c-bg)' }}
+                  />
+                  <label className="flex items-center gap-2 text-sm" style={{ color: 'var(--c-text)' }}>
+                    <input
+                      type="checkbox"
+                      checked={settingsForm.requires_custom_name}
+                      onChange={e => setSettingsField('requires_custom_name', e.target.checked)}
+                    />
+                    Require custom names
+                  </label>
+                  {settingsError && <ErrorBanner message={settingsError} />}
+                  <button
+                    onClick={handleSaveSettings}
+                    disabled={settingsSaving}
+                    className="btn-secondary w-full flex items-center justify-center gap-2"
+                  >
+                    {settingsSaving ? <><SpinnerIcon /><span>Saving...</span></> : <><CheckIcon size={15} /><span>Save Settings</span></>}
+                  </button>
+                </div>
+              </div>
+            )}
+
             {/* Order summary */}
             <div className="rounded-2xl overflow-hidden"
               style={{ border: '1px solid var(--c-border)', background: '#fff' }}>
@@ -835,6 +1007,25 @@ export default function ExcelBulkOrderFlow() {
                 )}
               </div>
             </div>
+
+            {order.payment_status && (
+              <div className="rounded-2xl p-5" style={{ border: '1px solid var(--c-border)', background: '#fff' }}>
+                <h4 className="text-sm font-semibold mb-2" style={{ color: 'var(--c-primary)' }}>Paid Participants Page</h4>
+                <p className="text-xs" style={{ color: 'var(--c-text-muted)' }}>
+                  A public social-proof page is available for this completed Excel order.
+                </p>
+                <a
+                  href={`/api/excel-bulk-orders/${id}/paid-participants/`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 mt-3 text-sm font-semibold"
+                  style={{ color: 'var(--c-primary)' }}
+                >
+                  <ArrowRightIcon />
+                  Open paid participants page
+                </a>
+              </div>
+            )}
 
             {/* Template download (always available) */}
             {order.template_file && (

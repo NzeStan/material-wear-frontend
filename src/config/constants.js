@@ -7,10 +7,14 @@
  * ============================================================
  */
 
+const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api')
+  .trim()
+  .replace(/\/+$/, '');
+
 export const APP = {
   name:            import.meta.env.VITE_APP_NAME        || 'Material Wear Limited',
   tagline:         import.meta.env.VITE_APP_TAGLINE      || 'Crafted for the Distinguished',
-  apiBase:         import.meta.env.VITE_API_BASE_URL     || 'http://localhost:8000/api',
+  apiBase:         API_BASE_URL,
   env:             import.meta.env.VITE_APP_ENV          || 'development',
   enableAnalytics: import.meta.env.VITE_ENABLE_ANALYTICS === 'true',
   enableDarkMode:  import.meta.env.VITE_ENABLE_DARK_MODE === 'true',

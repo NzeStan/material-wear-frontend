@@ -118,12 +118,16 @@ function CartItem({ item }) {
 // ── drawer ────────────────────────────────────────────────────────────────────
 
 export default function CartDrawer() {
-  const { cart, cartLoading, drawerOpen, setDrawerOpen, clearCart } = useCart()
+  const { cart, summary, cartLoading, drawerOpen, setDrawerOpen, clearCart } = useCart()
   const navigate = useNavigate()
   const [clearing, setClearing] = useState(false)
 
   const items   = cart?.items || []
   const isEmpty = items.length === 0
+  const subtotal = summary?.subtotal ?? cart?.subtotal
+  const vatAmount = summary?.vat_amount ?? cart?.vat_amount
+  const vatRate = summary?.vat_rate ?? cart?.vat_rate
+  const total = summary?.total ?? cart?.total_cost
 
   async function handleClear() {
     setClearing(true)
@@ -228,20 +232,20 @@ export default function CartDrawer() {
             <div className="space-y-1.5 mb-4 text-sm">
               <div className="flex justify-between">
                 <span style={{ color: 'var(--c-text-muted)' }}>Subtotal</span>
-                <span style={{ color: 'var(--c-text)' }}>{fmt(cart?.subtotal)}</span>
+                <span style={{ color: 'var(--c-text)' }}>{fmt(subtotal)}</span>
               </div>
               <div className="flex justify-between">
                 <span style={{ color: 'var(--c-text-muted)' }}>
-                  VAT ({cart?.vat_rate != null ? `${(cart.vat_rate * 100).toFixed(0)}%` : '15%'})
+                  VAT ({vatRate != null ? `${(vatRate * 100).toFixed(0)}%` : '15%'})
                 </span>
-                <span style={{ color: 'var(--c-text)' }}>{fmt(cart?.vat_amount)}</span>
+                <span style={{ color: 'var(--c-text)' }}>{fmt(vatAmount)}</span>
               </div>
               <div
                 className="flex justify-between font-bold pt-2 border-t"
                 style={{ borderColor: 'var(--c-border)' }}
               >
                 <span style={{ color: 'var(--c-text)' }}>Total</span>
-                <span style={{ color: 'var(--c-primary)', fontSize: 17 }}>{fmt(cart?.total_cost)}</span>
+                <span style={{ color: 'var(--c-primary)', fontSize: 17 }}>{fmt(total)}</span>
               </div>
             </div>
 

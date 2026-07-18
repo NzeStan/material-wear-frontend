@@ -43,7 +43,7 @@ export default function ForgotPassword() {
     try {
       await requestPasswordReset({ email })
       setSuccess(true)
-    } catch (err) {
+    } catch {
       // Still show success even on error — don't reveal if email exists
       setSuccess(true)
     } finally {
@@ -73,7 +73,7 @@ export default function ForgotPassword() {
               Check your inbox
             </h1>
             <p className="text-sm leading-relaxed mb-8" style={{ color: 'var(--c-text-muted)', maxWidth: 360, margin: '0 auto 2rem' }}>
-              If an account exists for <strong style={{ color: 'var(--c-text)' }}>{email}</strong>, we've sent a password reset link.
+              If an account exists for <strong style={{ color: 'var(--c-text)' }}>{email}</strong>, we&apos;ve sent a password reset link.
               It may take a minute or two to arrive — check your spam folder too.
             </p>
 
@@ -112,7 +112,7 @@ export default function ForgotPassword() {
               Forgot your<br />password?
             </h1>
             <p className="text-sm leading-relaxed mb-8" style={{ color: 'var(--c-text-muted)' }}>
-              No worries. Enter your email address and we'll send you a secure link to reset your password.
+              No worries. Enter your email address and we&apos;ll send you a secure link to reset your password.
             </p>
 
             {/* Error */}
@@ -163,7 +163,7 @@ export default function ForgotPassword() {
                 </Link>
               </p>
               <p className="text-sm" style={{ color: 'var(--c-text-muted)' }}>
-                Don't have an account?{' '}
+                Don&apos;t have an account?{' '}
                 <Link to="/register" className="font-semibold underline underline-offset-2" style={{ color: 'var(--c-primary)' }}>
                   Create one
                 </Link>
@@ -185,7 +185,7 @@ export default function ForgotPassword() {
                   style={{ color: 'var(--c-primary)' }}>
                   hello@materialwearlimited.com
                 </a>{' '}
-                and we'll help you recover your account.
+                and we&apos;ll help you recover your account.
               </p>
             </div>
           </>

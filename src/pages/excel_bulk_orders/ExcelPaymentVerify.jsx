@@ -6,7 +6,7 @@ import { api } from '../../services/api'
 function fmt(val) {
   const n = parseFloat(val)
   if (isNaN(n)) return '—'
-  return 'GH₵ ' + n.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',')
+  return '₦ ' + n.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',')
 }
 function fmtDate(str) {
   if (!str) return '—'
@@ -212,10 +212,10 @@ export default function ExcelPaymentVerify() {
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'var(--c-bg)', border: '1px solid var(--c-border)', borderRadius: 10, padding: '0.75rem 1.25rem' }}>
                   <span style={{ color: 'var(--c-text-muted)' }}><IconTable /></span>
-                  <div>
-                    <div style={{ fontSize: '0.75rem', color: 'var(--c-text-muted)' }}>Per Person</div>
-                    <div style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--c-text)' }}>GH₵ {perPerson}</div>
-                  </div>
+                    <div>
+                      <div style={{ fontSize: '0.75rem', color: 'var(--c-text-muted)' }}>Per Person</div>
+                      <div style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--c-text)' }}>₦ {perPerson}</div>
+                    </div>
                 </div>
                 {data.validation_status && (
                   <div style={{ marginLeft: 'auto' }}>
@@ -232,7 +232,7 @@ export default function ExcelPaymentVerify() {
               <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--c-text-muted)', letterSpacing: '0.06em', marginBottom: '0.75rem' }}>PAYMENT BREAKDOWN</div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: 'var(--c-text-muted)', fontSize: '0.9rem' }}>
-                  <span>Subtotal ({data.participants_count ?? 0} × GH₵ {perPerson})</span>
+                  <span>Subtotal ({data.participants_count ?? 0} × ₦ {perPerson})</span>
                   <span style={{ fontWeight: 600, color: 'var(--c-text)' }}>{fmt(data.base_amount)}</span>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: 'var(--c-text-muted)', fontSize: '0.9rem' }}>

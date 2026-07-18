@@ -24,6 +24,18 @@ function Spinner({ size = 22 }) {
   return <div style={{ width: size, height: size, border: '2px solid var(--c-border)', borderTopColor: 'var(--c-primary)', borderRadius: '50%', animation: 'taspin .7s linear infinite', flexShrink: 0 }} />
 }
 
+function getMediaUrl(media) {
+  return media?.thumbnails?.medium || media?.thumbnails?.large || media?.file_url || media?.file || ''
+}
+
+function inferMediaType(file) {
+  if (!file?.type) return 'document'
+  if (file.type.startsWith('image/')) return 'image'
+  if (file.type.startsWith('video/')) return 'video'
+  if (file.type.startsWith('audio/')) return 'audio'
+  return 'document'
+}
+
 const STATUS_BADGE = {
   pending:  { bg: '#fef3c7', color: '#92400e' },
   approved: { bg: '#d1fae5', color: '#065f46' },
@@ -84,9 +96,275 @@ function BulkRejectModal({ count, onConfirm, onClose, busy }) {
   )
 }
 
+function ReviewDetailModal({ id, categories, onClose, onSaved, onDeleted }) {
+  const fileInputRef = useRef(null)
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [uploading, setUploading] = useState(false)
+  const [detail, setDetail] = useState(null)
+  const [mediaItems, setMediaItems] = useState([])
+  const [error, setError] = useState('')
+  const [form, setForm] = useState({
+    response: '',
+    is_verified: false,
+    display_order: 0,
+    category_id: '',
+  })
+
+  const load = useCallback(async () => {
+    setLoading(true)
+    setError('')
+    try {
+      const [detailData, mediaData] = await Promise.all([
+        api.get(`/testimonials/testimonials/${id}/`),
+        api.get(`/testimonials/media/?testimonial=${id}&ordering=order`),
+      ])
+      const mediaList = Array.isArray(mediaData) ? mediaData : (mediaData.results || [])
+      setDetail(detailData)
+      setMediaItems(mediaList)
+      setForm({
+        response: detailData.response || '',
+        is_verified: !!detailData.is_verified,
+        display_order: detailData.display_order ?? 0,
+        category_id: detailData.category?.id ? String(detailData.category.id) : '',
+      })
+    } catch (e) {
+      setError(e.message || 'Could not load review details.')
+    } finally {
+      setLoading(false)
+    }
+  }, [id])
+
+  useEffect(() => { load() }, [load])
+
+  function set(field, value) {
+    setForm(prev => ({ ...prev, [field]: value }))
+  }
+
+  async function save() {
+    setSaving(true)
+    setError('')
+    try {
+      await api.patch(`/testimonials/testimonials/${id}/`, {
+        response: form.response.trim(),
+        is_verified: form.is_verified,
+        display_order: Number(form.display_order) || 0,
+        category_id: form.category_id || null,
+      })
+      await load()
+      onSaved()
+    } catch (e) {
+      setError(e.message || 'Could not save review changes.')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  async function deleteReview() {
+    if (!confirm('Delete this review permanently? This cannot be undone.')) return
+    setSaving(true)
+    setError('')
+    try {
+      await api.delete(`/testimonials/testimonials/${id}/`)
+      onDeleted(id)
+      onClose()
+    } catch (e) {
+      setError(e.message || 'Could not delete this review.')
+      setSaving(false)
+    }
+  }
+
+  async function uploadMedia(ev) {
+    const file = ev.target.files?.[0]
+    if (!file) return
+    setUploading(true)
+    setError('')
+    try {
+      const fd = new FormData()
+      fd.append('testimonial', id)
+      fd.append('file', file)
+      fd.append('media_type', inferMediaType(file))
+      fd.append('title', file.name)
+      await api.post('/testimonials/media/', fd)
+      await load()
+    } catch (e) {
+      setError(e.message || 'Could not upload media.')
+    } finally {
+      if (fileInputRef.current) fileInputRef.current.value = ''
+      setUploading(false)
+    }
+  }
+
+  async function updateMedia(media) {
+    setError('')
+    try {
+      await api.patch(`/testimonials/media/${media.id}/`, {
+        order: Number(media.order) || 0,
+        is_primary: !!media.is_primary,
+        title: media.title || '',
+        description: media.description || '',
+      })
+      await load()
+      onSaved()
+    } catch (e) {
+      setError(e.message || 'Could not update media.')
+    }
+  }
+
+  async function deleteMedia(mediaId) {
+    if (!confirm('Remove this attachment?')) return
+    setError('')
+    try {
+      await api.delete(`/testimonials/media/${mediaId}/`)
+      await load()
+      onSaved()
+    } catch (e) {
+      setError(e.message || 'Could not remove media.')
+    }
+  }
+
+  function updateMediaDraft(mediaId, field, value) {
+    setMediaItems(prev => prev.map(item => item.id === mediaId ? { ...item, [field]: value } : item))
+  }
+
+  return (
+    <div style={{ position: 'fixed', inset: 0, zIndex: 70, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16, background: 'rgba(0,0,0,0.55)' }}
+      onClick={e => { if (e.target === e.currentTarget) onClose() }}>
+      <div style={{ background: 'white', borderRadius: 12, width: '100%', maxWidth: 820, maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 24px 80px rgba(0,0,0,0.28)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '18px 22px', borderBottom: '1px solid var(--c-border)', position: 'sticky', top: 0, background: 'white', zIndex: 1 }}>
+          <div>
+            <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--c-text-muted)', marginBottom: 4 }}>Review Manager</p>
+            <h3 style={{ fontSize: 18, color: 'var(--c-primary)', margin: 0 }}>Review Details</h3>
+          </div>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--c-text-muted)', fontSize: 20, lineHeight: 1 }}>×</button>
+        </div>
+
+        <div style={{ padding: '22px 24px' }}>
+          {loading ? (
+            <div style={{ display: 'flex', justifyContent: 'center', padding: 50 }}><Spinner /></div>
+          ) : error && !detail ? (
+            <p style={{ color: '#b91c1c', fontSize: 13 }}>{error}</p>
+          ) : detail ? (
+            <>
+              {error && <div style={{ background: '#fef2f2', border: '1px solid #fecaca', color: '#b91c1c', borderRadius: 8, padding: '10px 12px', fontSize: 12, marginBottom: 16 }}>{error}</div>}
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: 18, marginBottom: 22 }}>
+                <div style={{ background: 'var(--c-bg-warm)', border: '1px solid var(--c-border)', borderRadius: 10, padding: '18px 18px' }}>
+                  <p style={{ fontSize: 15, fontWeight: 700, color: 'var(--c-text)', marginBottom: 8 }}>{detail.title || 'Untitled review'}</p>
+                  <p style={{ fontSize: 13, lineHeight: 1.7, color: 'var(--c-text-muted)', marginBottom: 14 }}>&ldquo;{detail.content}&rdquo;</p>
+                  <p style={{ fontSize: 12, color: 'var(--c-text)', marginBottom: 6 }}>
+                    <strong>{detail.author_display || detail.author_name}</strong> · {detail.author_email || 'No email'}
+                  </p>
+                  <p style={{ fontSize: 12, color: 'var(--c-text-muted)', margin: 0 }}>
+                    {[detail.author_phone, detail.location, detail.company].filter(Boolean).join(' · ') || 'No extra profile info'}
+                  </p>
+                  {detail.approved_at && (
+                    <p style={{ fontSize: 11, color: 'var(--c-text-muted)', marginTop: 12 }}>Published {fmt(detail.approved_at)}</p>
+                  )}
+                </div>
+
+                <div style={{ background: 'white', border: '1px solid var(--c-border)', borderRadius: 10, padding: '18px 18px' }}>
+                  <div style={{ marginBottom: 12 }}>
+                    <label className="form-label" htmlFor="review-category">Category</label>
+                    <select id="review-category" className="form-input" value={form.category_id} onChange={e => set('category_id', e.target.value)}>
+                      <option value="">Uncategorised</option>
+                      {categories.map(cat => <option key={cat.id} value={cat.id}>{cat.name}</option>)}
+                    </select>
+                  </div>
+                  <div style={{ marginBottom: 12 }}>
+                    <label className="form-label" htmlFor="review-order">Display Order</label>
+                    <input id="review-order" className="form-input" type="number" value={form.display_order} onChange={e => set('display_order', e.target.value)} />
+                  </div>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 12, fontWeight: 600, color: 'var(--c-text)', marginBottom: 14 }}>
+                    <input type="checkbox" checked={form.is_verified} onChange={e => set('is_verified', e.target.checked)}
+                      style={{ width: 16, height: 16, accentColor: 'var(--c-primary)' }} />
+                    Mark reviewer as verified
+                  </label>
+                  <div>
+                    <label className="form-label" htmlFor="review-response">Company Response</label>
+                    <textarea id="review-response" rows={5} className="form-input" value={form.response} onChange={e => set('response', e.target.value)}
+                      placeholder="Add a response from Material Wear..." style={{ resize: 'vertical' }} />
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ background: 'white', border: '1px solid var(--c-border)', borderRadius: 10, padding: '18px 18px', marginBottom: 22 }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 12, flexWrap: 'wrap' }}>
+                  <div>
+                    <p style={{ fontSize: 12, fontWeight: 700, color: 'var(--c-text)', marginBottom: 3 }}>Attachments</p>
+                    <p style={{ fontSize: 11, color: 'var(--c-text-muted)', margin: 0 }}>This is wired to the testimonials media endpoints for upload, edit, and removal.</p>
+                  </div>
+                  <div>
+                    <button type="button" onClick={() => fileInputRef.current?.click()}
+                      style={{ fontSize: 12, fontWeight: 700, padding: '8px 14px', borderRadius: 6, background: 'var(--c-primary)', color: 'white', border: 'none', cursor: 'pointer', opacity: uploading ? 0.7 : 1 }}>
+                      {uploading ? 'Uploading…' : '+ Add Attachment'}
+                    </button>
+                    <input ref={fileInputRef} type="file" onChange={uploadMedia} style={{ display: 'none' }} />
+                  </div>
+                </div>
+
+                {mediaItems.length === 0 ? (
+                  <p style={{ fontSize: 12, color: 'var(--c-text-muted)', margin: 0 }}>No attachments on this review yet.</p>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                    {mediaItems.map(media => (
+                      <div key={media.id} style={{ display: 'grid', gridTemplateColumns: '80px 1fr auto', gap: 12, alignItems: 'center', border: '1px solid var(--c-border)', borderRadius: 8, padding: '10px 12px' }}>
+                        {String(media.media_type).toLowerCase() === 'image'
+                          ? <img src={getMediaUrl(media)} alt={media.title || ''} style={{ width: 80, height: 64, objectFit: 'cover', borderRadius: 6 }} />
+                          : <a href={getMediaUrl(media)} target="_blank" rel="noopener noreferrer" style={{ fontSize: 11, color: 'var(--c-primary)', textDecoration: 'none' }}>Open file ↗</a>
+                        }
+                        <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 0.8fr auto', gap: 10, alignItems: 'center' }}>
+                          <input className="form-input" value={media.title || ''} onChange={e => updateMediaDraft(media.id, 'title', e.target.value)} placeholder="Attachment title" />
+                          <input className="form-input" type="number" value={media.order ?? 0} onChange={e => updateMediaDraft(media.id, 'order', e.target.value)} placeholder="Order" />
+                          <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11, color: 'var(--c-text-muted)' }}>
+                            <input type="checkbox" checked={!!media.is_primary} onChange={e => updateMediaDraft(media.id, 'is_primary', e.target.checked)}
+                              style={{ width: 15, height: 15, accentColor: 'var(--c-primary)' }} />
+                            Primary
+                          </label>
+                        </div>
+                        <div style={{ display: 'flex', gap: 8 }}>
+                          <button onClick={() => updateMedia(media)}
+                            style={{ fontSize: 11, fontWeight: 700, padding: '6px 10px', borderRadius: 6, background: '#d1fae5', color: '#065f46', border: 'none', cursor: 'pointer' }}>
+                            Save
+                          </button>
+                          <button onClick={() => deleteMedia(media.id)}
+                            style={{ fontSize: 11, fontWeight: 700, padding: '6px 10px', borderRadius: 6, background: '#fee2e2', color: '#991b1b', border: 'none', cursor: 'pointer' }}>
+                            Delete
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div style={{ display: 'flex', gap: 10, justifyContent: 'space-between', flexWrap: 'wrap' }}>
+                <button onClick={deleteReview} disabled={saving}
+                  style={{ fontSize: 12, fontWeight: 700, padding: '9px 14px', borderRadius: 6, background: '#fee2e2', color: '#991b1b', border: 'none', cursor: 'pointer', opacity: saving ? 0.7 : 1 }}>
+                  Delete Review
+                </button>
+                <div style={{ display: 'flex', gap: 10 }}>
+                  <button onClick={onClose}
+                    style={{ fontSize: 12, fontWeight: 600, padding: '9px 14px', borderRadius: 6, background: 'white', color: 'var(--c-text)', border: '1px solid var(--c-border)', cursor: 'pointer' }}>
+                    Close
+                  </button>
+                  <button onClick={save} disabled={saving}
+                    style={{ fontSize: 12, fontWeight: 700, padding: '9px 16px', borderRadius: 6, background: 'var(--c-primary)', color: 'white', border: 'none', cursor: 'pointer', opacity: saving ? 0.7 : 1 }}>
+                    {saving ? 'Saving…' : 'Save Changes'}
+                  </button>
+                </div>
+              </div>
+            </>
+          ) : null}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ── Individual review row ─────────────────────────────────────────────────────
 
-function ReviewRow({ t, selected, onSelect, onAction }) {
+function ReviewRow({ t, selected, onSelect, onAction, onManage }) {
   const [busy, setBusy]         = useState(null)
   const [showReject, setReject] = useState(false)
   const [expanded, setExpanded] = useState(false)
@@ -97,7 +375,7 @@ function ReviewRow({ t, selected, onSelect, onAction }) {
       if (action === 'approve')   await api.post(`/testimonials/testimonials/${t.id}/approve/`, {})
       if (action === 'feature')   await api.post(`/testimonials/testimonials/${t.id}/feature/`, {})
       if (action === 'reject')    await api.post(`/testimonials/testimonials/${t.id}/reject/`, { reason: payload.reason || '' })
-      if (action === 'archive')   await api.post(`/testimonials/testimonials/${t.id}/reject/`, { reason: 'Archived' })
+      if (action === 'archive')   await api.post('/testimonials/testimonials/bulk_action/', { action: 'archive', testimonial_ids: [t.id] })
       if (action === 'rm_avatar') await api.delete(`/testimonials/testimonials/${t.id}/remove_avatar/`)
       onAction(t.id, action)
     } catch (e) { alert(e.message || 'Action failed') }
@@ -179,7 +457,7 @@ function ReviewRow({ t, selected, onSelect, onAction }) {
         <p style={{ fontSize: 13, lineHeight: 1.65, color: 'var(--c-text-muted)', marginBottom: 8,
           overflow: expanded ? 'visible' : 'hidden', display: expanded ? 'block' : '-webkit-box',
           WebkitLineClamp: expanded ? 'none' : 3, WebkitBoxOrient: 'vertical' }}>
-          "{t.content}"
+          &ldquo;{t.content}&rdquo;
         </p>
         {t.content.length > 180 && (
           <button onClick={() => setExpanded(v => !v)} style={{ fontSize: 11, color: 'var(--c-primary)', background: 'none', border: 'none', cursor: 'pointer', padding: 0, marginBottom: 8, fontWeight: 600 }}>
@@ -232,6 +510,10 @@ function ReviewRow({ t, selected, onSelect, onAction }) {
               {busy === 'archive' ? '…' : 'Archive'}
             </button>
           )}
+          <button onClick={() => onManage(t.id)}
+            style={{ fontSize: 11, fontWeight: 700, padding: '5px 12px', borderRadius: 6, background: 'white', color: 'var(--c-primary)', border: '1px solid rgba(6,78,59,0.18)', cursor: 'pointer' }}>
+            Manage
+          </button>
           <span style={{ flex: 1 }} />
           <span style={{ fontSize: 10, color: 'var(--c-text-muted)', alignSelf: 'center' }}>
             {t.source_display ? `via ${t.source_display}` : ''}{t.approved_at ? `  ·  published ${fmt(t.approved_at)}` : ''}
@@ -457,9 +739,11 @@ export default function TestimonialsAdmin() {
   const [loadingMore, setLM]    = useState(false)
   const [stats,   setStats]     = useState(null)
   const [catStats, setCatStats] = useState([])
+  const [categories, setCategories] = useState([])
   const [selected, setSelected] = useState(new Set())
   const [bulkBusy, setBulkBusy] = useState(null)
   const [showBulkReject, setShowBulkReject] = useState(false)
+  const [detailId, setDetailId] = useState(null)
   const sentinelRef = useRef(null)
 
   useEffect(() => { document.title = 'Reviews Admin — Material Wear' }, [])
@@ -484,6 +768,13 @@ export default function TestimonialsAdmin() {
     } catch { /* non-critical */ }
   }, [])
 
+  const loadCategories = useCallback(async () => {
+    try {
+      const data = await api.get('/testimonials/categories/')
+      setCategories(Array.isArray(data) ? data : (data.results || []))
+    } catch { /* non-critical */ }
+  }, [])
+
   const loadReviews = useCallback(async (tab, pg = 1) => {
     if (pg === 1) { setLoading(true); setItems([]); setHasMore(false) }
     try {
@@ -502,8 +793,9 @@ export default function TestimonialsAdmin() {
   useEffect(() => {
     if (!authLoading && isAuthenticated && user?.is_staff) {
       loadStats()
+      loadCategories()
     }
-  }, [authLoading, isAuthenticated, user, loadStats])
+  }, [authLoading, isAuthenticated, user, loadStats, loadCategories])
 
   useEffect(() => {
     if (!authLoading && isAuthenticated && user?.is_staff && mainTab === 'Reviews') {
@@ -547,6 +839,12 @@ export default function TestimonialsAdmin() {
   function selectAll()   { setSelected(new Set(items.map(t => t.id))) }
   function selectNone()  { setSelected(new Set()) }
 
+  function handleDeleted(id) {
+    setItems(prev => prev.filter(t => t.id !== id))
+    setSelected(prev => { const s = new Set(prev); s.delete(id); return s })
+    loadStats()
+  }
+
   async function bulkAction(action, payload = {}) {
     if (selected.size === 0) return
     setBulkBusy(action)
@@ -580,6 +878,16 @@ export default function TestimonialsAdmin() {
             onConfirm={async reason => { await bulkAction('reject', { reason }); setShowBulkReject(false) }}
             onClose={() => setShowBulkReject(false)}
             busy={bulkBusy === 'reject'}
+          />
+        )}
+
+        {detailId && (
+          <ReviewDetailModal
+            id={detailId}
+            categories={categories}
+            onClose={() => setDetailId(null)}
+            onSaved={() => { loadStats(); loadReviews(revTab, 1) }}
+            onDeleted={handleDeleted}
           />
         )}
 
@@ -708,6 +1016,7 @@ export default function TestimonialsAdmin() {
                     selected={selected.has(t.id)}
                     onSelect={toggleSelect}
                     onAction={handleAction}
+                    onManage={setDetailId}
                   />
                 ))}
               </div>

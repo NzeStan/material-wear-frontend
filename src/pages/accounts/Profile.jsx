@@ -4,6 +4,8 @@ import { useAuth } from '../../context/AuthContext'
 import { useScrollRevealGroup } from '../../hooks/useScrollAnimation'
 import { APP } from '../../config/constants'
 
+const BACKEND = (import.meta.env.VITE_API_BASE_URL || '').replace('/api', '')
+
 // ── Icons ─────────────────────────────────────────────────────────────────────
 const UserIcon = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
@@ -116,7 +118,7 @@ const TABS = [
 
 // ── Main component ────────────────────────────────────────────────────────────
 export default function Profile() {
-  const { user, isAuthenticated, loading, logout, updateProfile, changePassword } = useAuth()
+  const { user, permissions, canAccessAdmin, isAuthenticated, loading, logout, updateProfile, changePassword } = useAuth()
   const navigate = useNavigate()
   const groupRef = useScrollRevealGroup()
 
@@ -191,6 +193,22 @@ export default function Profile() {
                     @{user.username}
                   </p>
                 )}
+                <div className="flex flex-wrap gap-2 mt-3">
+                  <span
+                    className="px-2.5 py-1 text-xs font-semibold tracking-wide uppercase"
+                    style={{ background: 'rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.72)', border: '1px solid rgba(255,255,255,0.14)' }}
+                  >
+                    {canAccessAdmin ? 'Staff Access' : 'Customer Account'}
+                  </span>
+                  {user.last_login && (
+                    <span
+                      className="px-2.5 py-1 text-xs font-semibold tracking-wide uppercase"
+                      style={{ background: 'rgba(245,158,11,0.12)', color: 'var(--c-accent-light)', border: '1px solid rgba(245,158,11,0.2)' }}
+                    >
+                      Last login: {new Date(user.last_login).toLocaleDateString('en-GB')}
+                    </span>
+                  )}
+                </div>
               </div>
 
               {/* Logout — desktop */}
@@ -236,7 +254,7 @@ export default function Profile() {
         <div className="max-w-2xl">
 
           {activeTab === 'profile' && (
-            <ProfileTab user={user} updateProfile={updateProfile} />
+            <ProfileTab user={user} permissions={permissions} canAccessAdmin={canAccessAdmin} updateProfile={updateProfile} />
           )}
 
           {activeTab === 'security' && (
@@ -266,12 +284,11 @@ export default function Profile() {
 }
 
 // ── Profile Tab ───────────────────────────────────────────────────────────────
-function ProfileTab({ user, updateProfile }) {
+function ProfileTab({ user, permissions, canAccessAdmin, updateProfile }) {
   const [editing, setEditing]     = useState(false)
   const [formData, setFormData]   = useState({
     first_name: user?.first_name || '',
     last_name:  user?.last_name  || '',
-    username:   user?.username   || '',
   })
   const [loading, setLoading]     = useState(false)
   const [alert, setAlert]         = useState({ type: '', message: '' })
@@ -291,7 +308,7 @@ function ProfileTab({ user, updateProfile }) {
   }
 
   const handleCancel = () => {
-    setFormData({ first_name: user?.first_name || '', last_name: user?.last_name || '', username: user?.username || '' })
+    setFormData({ first_name: user?.first_name || '', last_name: user?.last_name || '' })
     setEditing(false)
     setAlert({ type: '', message: '' })
   }
@@ -367,7 +384,19 @@ function ProfileTab({ user, updateProfile }) {
           <Field label="First Name" name="first_name" placeholder="Jane" autoComplete="given-name" />
           <Field label="Last Name"  name="last_name"  placeholder="Doe"  autoComplete="family-name" />
         </div>
-        <Field label="Username" name="username" placeholder="janedoe" autoComplete="username" />
+
+        <div className="reveal">
+          <label className="form-label">Username</label>
+          <div
+            className="px-4 py-3.5 text-sm"
+            style={{ background: 'white', border: '1.5px solid #E5E7EB', color: 'var(--c-text)' }}
+          >
+            {user?.username || 'Not set'}
+          </div>
+          <p className="mt-1.5 text-xs" style={{ color: 'var(--c-text-light)' }}>
+            Username is currently read-only in the account API.
+          </p>
+        </div>
 
         {/* Email — always read-only */}
         <div className="reveal">
@@ -393,6 +422,7 @@ function ProfileTab({ user, updateProfile }) {
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
           {[
             { label: 'Browse Collections', to: '/collections' },
+            { label: 'My Orders',          to: '/orders' },
             { label: 'Size Guide',         to: '/size-guide' },
             { label: 'Contact Support',    to: '/contact' },
           ].map(({ label, to }) => (
@@ -407,6 +437,43 @@ function ProfileTab({ user, updateProfile }) {
           ))}
         </div>
       </div>
+
+      {canAccessAdmin && (
+        <div className="mt-10 pt-8 border-t reveal" style={{ borderColor: '#E5E7EB' }}>
+          <p className="text-xs tracking-widest uppercase mb-4 font-semibold" style={{ color: 'var(--c-text-muted)' }}>
+            Staff Access
+          </p>
+          <div
+            className="p-5"
+            style={{ background: 'rgba(6,78,59,0.04)', border: '1px solid rgba(6,78,59,0.12)' }}
+          >
+            <p className="text-sm font-medium mb-2" style={{ color: 'var(--c-text)' }}>
+              Admin access is enabled for this account.
+            </p>
+            <p className="text-xs leading-relaxed mb-4" style={{ color: 'var(--c-text-muted)' }}>
+              Your frontend account status is wired to the backend role endpoints. Django admin itself is still protected separately by the hidden admin path, two-factor authentication, and production IP restrictions.
+            </p>
+            <div className="flex flex-wrap gap-2 mb-4">
+              {permissions?.roles?.is_superuser && <span className="px-2.5 py-1 text-xs font-semibold" style={{ background: '#ede9fe', color: '#6d28d9' }}>Superuser</span>}
+              {permissions?.roles?.is_staff && <span className="px-2.5 py-1 text-xs font-semibold" style={{ background: '#dbeafe', color: '#1d4ed8' }}>Staff</span>}
+              {permissions?.roles?.can_view_reports && <span className="px-2.5 py-1 text-xs font-semibold" style={{ background: '#dcfce7', color: '#166534' }}>Reports</span>}
+            </div>
+            <div className="flex flex-wrap gap-3">
+              <Link to="/admin" className="btn-primary inline-flex items-center justify-center gap-2">
+                Staff Dashboard
+              </Link>
+              <a
+                href={`${BACKEND}/i_must_win/`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn-secondary inline-flex items-center justify-center gap-2"
+              >
+                Django Admin
+              </a>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
@@ -493,7 +560,7 @@ function SecurityTab({ changePassword }) {
           Change Password
         </h2>
         <p className="mt-2 text-sm" style={{ color: 'var(--c-text-muted)' }}>
-          Keep your account secure. We recommend using a unique password you don't use elsewhere.
+          Keep your account secure. We recommend using a unique password you don&apos;t use elsewhere.
         </p>
       </div>
 
@@ -583,11 +650,16 @@ function OrdersTab() {
           No orders yet
         </p>
         <p className="text-sm mb-8 max-w-xs mx-auto" style={{ color: 'var(--c-text-muted)' }}>
-          When you place an order, it'll appear here so you can track and manage it.
+          When you place an order, it&apos;ll appear here so you can track and manage it.
         </p>
-        <Link to="/collections" className="btn-primary inline-flex">
-          <span>Explore Collections</span>
-        </Link>
+        <div className="flex flex-wrap items-center justify-center gap-3">
+          <Link to="/orders" className="btn-primary inline-flex">
+            <span>View Product Orders</span>
+          </Link>
+          <Link to="/collections" className="btn-secondary inline-flex">
+            <span>Explore Collections</span>
+          </Link>
+        </div>
       </div>
     </div>
   )

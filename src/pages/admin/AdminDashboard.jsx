@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, Navigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 
@@ -254,6 +254,130 @@ function BackendCard({ label, desc, href, color, icon }) {
   )
 }
 
+function GenerationPanel() {
+  const [filters, setFilters] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
+
+  useEffect(() => {
+    let mounted = true
+
+    async function loadFilters() {
+      setLoading(true)
+      setError(null)
+      try {
+        const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api'}/generate/available-filters/`, {
+          credentials: 'include',
+        })
+
+        if (!response.ok) {
+          throw new Error(response.status === 403
+            ? 'Staff admin session required to load available PDF filters.'
+            : 'Could not load order-item generation filters.')
+        }
+
+        const data = await response.json()
+        if (mounted) setFilters(data)
+      } catch (err) {
+        if (mounted) setError(err.message || 'Could not load order-item generation filters.')
+      } finally {
+        if (mounted) setLoading(false)
+      }
+    }
+
+    loadFilters()
+    return () => { mounted = false }
+  }, [])
+
+  function renderLinks(items, buildHref, emptyLabel) {
+    if (!items?.length) {
+      return <p className="text-xs" style={{ color: 'var(--c-text-muted)' }}>{emptyLabel}</p>
+    }
+
+    return (
+      <div className="flex flex-wrap gap-2">
+        {items.map(item => (
+          <a
+            key={item}
+            href={buildHref(item)}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-xs font-semibold px-3 py-1.5 rounded-full"
+            style={{
+              background: '#f8fafc',
+              color: '#0f172a',
+              border: '1px solid #cbd5e1',
+            }}
+          >
+            {item}
+          </a>
+        ))}
+      </div>
+    )
+  }
+
+  return (
+    <section>
+      <div className="flex items-center gap-3 mb-3">
+        <h2 className="text-xs font-bold tracking-widest uppercase" style={{ color: '#dc2626' }}>
+          Order Item PDFs
+        </h2>
+        <div className="flex-1 h-px" style={{ background: '#fecaca' }} />
+      </div>
+
+      <div
+        className="rounded-xl p-4"
+        style={{ background: 'white', border: '1px solid var(--c-border)' }}
+      >
+        <p className="text-sm font-semibold mb-1" style={{ color: 'var(--c-text)' }}>
+          Generate fulfilment PDFs from the frontend
+        </p>
+        <p className="text-xs mb-4" style={{ color: 'var(--c-text-muted)' }}>
+          These links use the `available-filters` endpoint and open the staff-protected PDF generation endpoints directly.
+        </p>
+
+        {loading ? (
+          <p className="text-xs" style={{ color: 'var(--c-text-muted)' }}>Loading available filters...</p>
+        ) : error ? (
+          <div
+            className="text-xs rounded-lg px-3 py-2"
+            style={{ background: '#fef2f2', color: '#b91c1c', border: '1px solid #fecaca' }}
+          >
+            {error}
+          </div>
+        ) : (
+          <div className="space-y-4">
+            <div>
+              <p className="text-xs font-semibold mb-2" style={{ color: 'var(--c-text)' }}>NYSC Kit States</p>
+              {renderLinks(
+                filters?.nysc_kit_states,
+                value => `${BACKEND}/api/generate/nysc-kit/pdf/?state=${encodeURIComponent(value)}`,
+                'No kit states available yet.',
+              )}
+            </div>
+            <div>
+              <p className="text-xs font-semibold mb-2" style={{ color: 'var(--c-text)' }}>NYSC Tour States</p>
+              {renderLinks(
+                filters?.nysc_tour_states,
+                value => `${BACKEND}/api/generate/nysc-tour/pdf/?state=${encodeURIComponent(value)}`,
+                'No tour states available yet.',
+              )}
+            </div>
+            <div>
+              <p className="text-xs font-semibold mb-2" style={{ color: 'var(--c-text)' }}>Churches</p>
+              {renderLinks(
+                filters?.churches,
+                value => `${BACKEND}/api/generate/church/pdf/?church=${encodeURIComponent(value)}`,
+                'No church fulfilment filters available yet.',
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+    </section>
+  )
+}
+
 // ── Main page ─────────────────────────────────────────────────────────────────
 
 export default function AdminDashboard() {
@@ -316,6 +440,8 @@ export default function AdminDashboard() {
             </section>
           ))}
 
+          <GenerationPanel />
+
           {/* Backend admin section */}
           <section>
             <div className="flex items-center gap-3 mb-3">
@@ -335,7 +461,8 @@ export default function AdminDashboard() {
               </svg>
               <p>
                 Backend links open the Django admin panel. You must be separately logged in to the Django admin
-                (via two-factor authentication) to access these pages.
+                through the hardened `i_must_win` path. Access there is protected by two-factor authentication,
+                and production deployments may also enforce an IP whitelist before the admin can even load.
               </p>
             </div>
             <div className="grid sm:grid-cols-2 gap-3">
