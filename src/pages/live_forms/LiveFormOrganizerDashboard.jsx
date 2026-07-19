@@ -834,13 +834,9 @@ export default function LiveFormOrganizerDashboard() {
 
   /* download */
   const handleDownload = async (form, type) => {
-    const BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api'
     const extMap   = { pdf: 'pdf', word: 'docx', excel: 'xlsx' }
     try {
-      const res = await fetch(`${BASE_URL}/live_forms/api/forms/${form.slug}/download_${type}/`, {
-        headers: api.getAuthHeader(),
-      })
-      if (!res.ok) throw new Error('Download failed')
+      const res = await api.getBlob(`/live_forms/api/forms/${form.slug}/download_${type}/`)
       const blob = await res.blob()
       const url  = URL.createObjectURL(blob)
       const a    = document.createElement('a')

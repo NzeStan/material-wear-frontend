@@ -1,32 +1,13 @@
 import { useEffect, useState } from 'react'
 import { Link, Navigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
+import { APP } from '../../config/constants'
 
-const BACKEND = (import.meta.env.VITE_API_BASE_URL || '').replace('/api', '')
+const BACKEND = APP.backendOrigin
 
 // ── Tool definitions ───────────────────────────────────────────────────────────
 
 const TOOL_GROUPS = [
-  {
-    group: 'Product Orders',
-    color: '#0369a1',
-    bgColor: 'rgba(3,105,161,0.06)',
-    tools: [
-      {
-        label: 'All Product Orders',
-        desc: 'View, search, and track NYSC kit, tour, and church orders',
-        path: '/orders',
-        icon: (
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-            <path d="M9 2H15l-1 4H10L9 2z"/>
-            <path d="M2 6h20v16a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6z"/>
-            <line x1="9" y1="10" x2="15" y2="10"/>
-            <line x1="9" y1="14" x2="15" y2="14"/>
-          </svg>
-        ),
-      },
-    ],
-  },
   {
     group: 'Bulk Orders',
     color: '#7c3aed',
@@ -129,6 +110,27 @@ const TOOL_GROUPS = [
       },
     ],
   },
+  {
+    group: 'Referrals Program',
+    color: '#0891b2',
+    bgColor: 'rgba(8,145,178,0.06)',
+    tools: [
+      {
+        label: 'Referral Admin Panel',
+        desc: 'Manage promotional media and view all referrer profiles (admin panel is at the bottom of this page)',
+        path: '/referrals',
+        icon: (
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+            <circle cx="18" cy="5" r="3"/>
+            <circle cx="6" cy="12" r="3"/>
+            <circle cx="18" cy="19" r="3"/>
+            <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/>
+            <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
+          </svg>
+        ),
+      },
+    ],
+  },
 ]
 
 const BACKEND_LINKS = [
@@ -145,9 +147,23 @@ const BACKEND_LINKS = [
     ),
   },
   {
-    label: 'Generate Order PDFs',
-    desc: 'Generate NYSC Kit, Tour, and Church order item PDFs by state',
-    href: `${BACKEND}/i_must_win/orderitem_generation/`,
+    label: 'All Product Orders',
+    desc: 'View, search, and manage NYSC Kit, Tour, and Church orders across all customers',
+    href: `${BACKEND}/i_must_win/order/`,
+    color: '#0369a1',
+    icon: (
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+        <path d="M9 2H15l-1 4H10L9 2z"/>
+        <path d="M2 6h20v16a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6z"/>
+        <line x1="9" y1="10" x2="15" y2="10"/>
+        <line x1="9" y1="14" x2="15" y2="14"/>
+      </svg>
+    ),
+  },
+  {
+    label: 'Generate NYSC Kit PDFs',
+    desc: 'Pick a state and generate/regenerate NYSC Kit order PDFs — includes previously generated orders, unlike the panel below',
+    href: `${BACKEND}/i_must_win/order/nysckitorder/generate-pdf/`,
     color: '#dc2626',
     icon: (
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
@@ -156,6 +172,61 @@ const BACKEND_LINKS = [
         <line x1="16" y1="13" x2="8" y2="13"/>
         <line x1="16" y1="17" x2="8" y2="17"/>
         <polyline points="10 9 9 9 8 9"/>
+      </svg>
+    ),
+  },
+  {
+    label: 'Generate NYSC Tour PDFs',
+    desc: 'Pick a state and generate/regenerate NYSC Tour order PDFs',
+    href: `${BACKEND}/i_must_win/order/nysctourorder/generate-pdf/`,
+    color: '#dc2626',
+    icon: (
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+        <polyline points="14 2 14 8 20 8"/>
+        <line x1="16" y1="13" x2="8" y2="13"/>
+        <line x1="16" y1="17" x2="8" y2="17"/>
+        <polyline points="10 9 9 9 8 9"/>
+      </svg>
+    ),
+  },
+  {
+    label: 'Generate Church Order PDFs',
+    desc: 'Pick a church and generate/regenerate church order PDFs',
+    href: `${BACKEND}/i_must_win/order/churchorder/generate-pdf/`,
+    color: '#dc2626',
+    icon: (
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+        <polyline points="14 2 14 8 20 8"/>
+        <line x1="16" y1="13" x2="8" y2="13"/>
+        <line x1="16" y1="17" x2="8" y2="17"/>
+        <polyline points="10 9 9 9 8 9"/>
+      </svg>
+    ),
+  },
+  {
+    label: 'Manage Feed Images',
+    desc: 'Upload, preview, and activate/deactivate images shown on the Feed page',
+    href: `${BACKEND}/i_must_win/feed/image/`,
+    color: '#7c3aed',
+    icon: (
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+        <rect x="3" y="3" width="18" height="18" rx="2"/>
+        <circle cx="8.5" cy="8.5" r="1.5"/>
+        <polyline points="21 15 16 10 5 21"/>
+      </svg>
+    ),
+  },
+  {
+    label: 'Refresh YouTube Cache',
+    desc: 'View cached channel videos and force-refresh from the YouTube API',
+    href: `${BACKEND}/i_must_win/feed/youtubecache/`,
+    color: '#dc2626',
+    icon: (
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+        <polygon points="23 7 16 12 23 17 23 7"/>
+        <rect x="1" y="5" width="15" height="14" rx="2" ry="2"/>
       </svg>
     ),
   },

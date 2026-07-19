@@ -1,9 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { api } from '../../services/api'
-import { CONTACT } from '../../config/constants'
-
-const BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api'
+import { APP, CONTACT } from '../../config/constants'
 
 // ── Icons ──────────────────────────────────────────────────────────────────────
 const SpinnerIcon = ({ size = 16 }) => (
@@ -312,10 +310,7 @@ export default function ExcelBulkOrderFlow() {
     if (!order?.template_file) return
     setDownloading(true)
     try {
-      const res = await fetch(`${BASE_URL}/excel-bulk-orders/${id}/download-template/`, {
-        headers: api.getAuthHeader(),
-      })
-      if (!res.ok) throw new Error('Download failed')
+      const res = await api.getBlob(`/excel-bulk-orders/${id}/download-template/`)
       const blob = await res.blob()
       const a = document.createElement('a')
       a.href = URL.createObjectURL(blob)
@@ -537,7 +532,7 @@ export default function ExcelBulkOrderFlow() {
                     View All My Orders
                   </Link>
                   <a
-                    href={`/api/excel-bulk-orders/${id}/paid-participants/`}
+                    href={`${APP.backendOrigin}/api/excel-bulk-orders/${id}/paid-participants/`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="btn-secondary inline-flex items-center gap-2 justify-center"
@@ -1015,7 +1010,7 @@ export default function ExcelBulkOrderFlow() {
                   A public social-proof page is available for this completed Excel order.
                 </p>
                 <a
-                  href={`/api/excel-bulk-orders/${id}/paid-participants/`}
+                  href={`${APP.backendOrigin}/api/excel-bulk-orders/${id}/paid-participants/`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-2 mt-3 text-sm font-semibold"

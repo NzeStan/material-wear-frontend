@@ -295,11 +295,7 @@ export default function ExcelMyOrders() {
   /* download template */
   const handleDownload = async (order) => {
     try {
-      const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
-      const res = await fetch(`${BASE_URL}/api/excel-bulk-orders/${order.id}/download-template/`, {
-        headers: api.getAuthHeader(),
-      })
-      if (!res.ok) throw new Error('Download failed')
+      const res = await api.getBlob(`/excel-bulk-orders/${order.id}/download-template/`)
       const blob = await res.blob()
       const url  = URL.createObjectURL(blob)
       const a    = document.createElement('a')

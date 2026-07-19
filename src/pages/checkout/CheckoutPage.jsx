@@ -92,6 +92,11 @@ export default function CheckoutPage() {
   const [errors,      setErrors]      = useState({})
   const [submitting,  setSubmitting]  = useState(false)
   const [submitError, setSubmitError] = useState(null)
+  // Orders were created but Paystack initialization failed (503 from checkout).
+  // The backend already stashed the order IDs in the session — retrying just
+  // means calling /payment/initiate/ again, no need to resubmit the form.
+  const [canRetryPayment, setCanRetryPayment] = useState(false)
+  const [retrying, setRetrying] = useState(false)
   const [states,      setStates]      = useState([])
   const [sizeOptions, setSizeOptions] = useState({ vest_sizes: [], church_sizes: [] })
   const [churchOptions, setChurchOptions] = useState([])
@@ -194,9 +199,33 @@ export default function CheckoutPage() {
     return e
   }
 
+  // Orders exist and are paid-for once Paystack redirects back to /checkout/verify.
+  // InitiatePaymentView defaults its own callback to /payment/verify (the bulk-order
+  // verification page) when none is passed, so this retry call must always specify
+  // the product-checkout verify page explicitly.
+  async function handleRetryPayment() {
+    setRetrying(true)
+    setSubmitError(null)
+    try {
+      const data = await api.post('/payment/initiate/', {
+        callback_url: `${window.location.origin}/checkout/verify`,
+      })
+      if (data.authorization_url) {
+        window.location.href = data.authorization_url
+      } else {
+        setSubmitError('Could not start payment. Please try again.')
+      }
+    } catch (err) {
+      setSubmitError(err.message || 'Could not start payment. Please try again.')
+    } finally {
+      setRetrying(false)
+    }
+  }
+
   async function handleSubmit(e) {
     e.preventDefault()
     setSubmitError(null)
+    setCanRetryPayment(false)
     const errs = validate()
     if (Object.keys(errs).length > 0) { setErrors(errs); return }
 
@@ -229,7 +258,13 @@ export default function CheckoutPage() {
       }
     } catch (err) {
       const errData = err?.data
-      if (errData && typeof errData === 'object' && !errData.detail) {
+      if (err.status === 503 && errData?.retry_endpoint) {
+        // Orders were created but Paystack initialization failed. The backend
+        // already stored the order IDs in session for retry — no need to
+        // resubmit the form, just re-trigger payment initialization.
+        setCanRetryPayment(true)
+        setSubmitError(errData.error || 'Your order was created, but we could not start payment. Please retry.')
+      } else if (errData && typeof errData === 'object' && !errData.detail && !errData.error) {
         const fieldErrors = {}
         Object.entries(errData).forEach(([k, v]) => {
           fieldErrors[k] = Array.isArray(v) ? v[0] : String(v)
@@ -536,27 +571,52 @@ export default function CheckoutPage() {
                     </div>
                   )}
 
-                  <button
-                    type="submit"
-                    disabled={submitting || cartLoading}
-                    className="w-full btn-primary flex items-center justify-center gap-2"
-                    style={{ opacity: submitting ? 0.7 : 1 }}
-                  >
-                    {submitting ? (
-                      <>
-                        <div style={{ width: 15, height: 15, border: '2px solid rgba(255,255,255,0.3)', borderTopColor: 'white', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />
-                        Processing…
-                      </>
-                    ) : (
-                      <>
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                          <rect x="1" y="4" width="22" height="16" rx="2"/>
-                          <line x1="1" y1="10" x2="23" y2="10"/>
-                        </svg>
-                        Pay with Paystack
-                      </>
-                    )}
-                  </button>
+                  {canRetryPayment ? (
+                    <button
+                      type="button"
+                      onClick={handleRetryPayment}
+                      disabled={retrying}
+                      className="w-full btn-primary flex items-center justify-center gap-2"
+                      style={{ opacity: retrying ? 0.7 : 1 }}
+                    >
+                      {retrying ? (
+                        <>
+                          <div style={{ width: 15, height: 15, border: '2px solid rgba(255,255,255,0.3)', borderTopColor: 'white', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />
+                          Retrying…
+                        </>
+                      ) : (
+                        <>
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <polyline points="23 4 23 10 17 10"/>
+                            <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
+                          </svg>
+                          Retry Payment
+                        </>
+                      )}
+                    </button>
+                  ) : (
+                    <button
+                      type="submit"
+                      disabled={submitting || cartLoading}
+                      className="w-full btn-primary flex items-center justify-center gap-2"
+                      style={{ opacity: submitting ? 0.7 : 1 }}
+                    >
+                      {submitting ? (
+                        <>
+                          <div style={{ width: 15, height: 15, border: '2px solid rgba(255,255,255,0.3)', borderTopColor: 'white', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />
+                          Processing…
+                        </>
+                      ) : (
+                        <>
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <rect x="1" y="4" width="22" height="16" rx="2"/>
+                            <line x1="1" y1="10" x2="23" y2="10"/>
+                          </svg>
+                          Pay with Paystack
+                        </>
+                      )}
+                    </button>
+                  )}
 
                   <div className="flex items-center justify-center gap-1.5 mt-3">
                     <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"

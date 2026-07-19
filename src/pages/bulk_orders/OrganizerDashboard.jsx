@@ -785,10 +785,7 @@ function OrderLinkCard({ order, isAdmin, onRefresh, onDeleted }) {
         excel: `/bulk_orders/links/${order.slug}/generate_size_summary/`,
       }
       // Direct browser download via anchor
-      const resp  = await fetch(`${import.meta.env.VITE_API_BASE_URL || '/api'}${endpoints[type]}`, {
-        headers: api.getAuthHeader(),
-      })
-      if (!resp.ok) throw new Error('Download failed')
+      const resp = await api.getBlob(endpoints[type])
       const blob = await resp.blob()
       const url  = URL.createObjectURL(blob)
       const a    = document.createElement('a')

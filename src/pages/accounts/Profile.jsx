@@ -4,7 +4,7 @@ import { useAuth } from '../../context/AuthContext'
 import { useScrollRevealGroup } from '../../hooks/useScrollAnimation'
 import { APP } from '../../config/constants'
 
-const BACKEND = (import.meta.env.VITE_API_BASE_URL || '').replace('/api', '')
+const BACKEND = APP.backendOrigin
 
 // ── Icons ─────────────────────────────────────────────────────────────────────
 const UserIcon = () => (

@@ -175,16 +175,7 @@ function downloadBlob(blob, filename) {
 }
 
 async function downloadAcademicExport(params) {
-  const response = await fetch(`/api${API}/export-pdf/?${params.toString()}`, {
-    method: 'GET',
-    credentials: 'include',
-    headers: api.getAuthHeader(),
-  })
-
-  if (!response.ok) {
-    const data = await response.json().catch(() => ({ detail: response.statusText }))
-    throw new Error(data?.error || data?.detail || 'Export failed')
-  }
+  const response = await api.getBlob(`${API}/export-pdf/?${params.toString()}`)
 
   const disposition = response.headers.get('Content-Disposition') || ''
   const matched = disposition.match(/filename="?([^"]+)"?/)

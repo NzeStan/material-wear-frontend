@@ -45,6 +45,8 @@ function OrderCard({ order }) {
   const [detailLoading, setDetailLoading] = useState(false)
   const [receipt, setReceipt] = useState(null)
   const [receiptLoading, setReceiptLoading] = useState(false)
+  const [retrying, setRetrying] = useState(false)
+  const [retryError, setRetryError] = useState(null)
 
   async function toggleExpand() {
     if (!expanded && !detail) {
@@ -70,6 +72,25 @@ function OrderCard({ order }) {
       setReceipt(data)
     } finally {
       setReceiptLoading(false)
+    }
+  }
+
+  async function handleRetryPayment() {
+    setRetrying(true)
+    setRetryError(null)
+    try {
+      const data = await api.post(`/order/${order.id}/retry-payment/`, {
+        callback_url: `${window.location.origin}/checkout/verify`,
+      })
+      if (data.payment_url) {
+        window.location.href = data.payment_url
+      } else {
+        setRetryError('Could not start payment. Please try again.')
+      }
+    } catch (err) {
+      setRetryError(err.message || 'Could not start payment. Please try again.')
+    } finally {
+      setRetrying(false)
     }
   }
 
@@ -211,16 +232,32 @@ function OrderCard({ order }) {
                     </svg>
                     <p style={{ color: '#92400e' }}>
                       This order has not been paid for yet. If you already made a payment,
-                      contact support with your reference number.
+                      contact support with your reference number instead of retrying.
                     </p>
                   </div>
-                  <a
-                    href={`mailto:${CONTACT.email}`}
-                    className="text-xs font-semibold underline"
-                    style={{ color: 'var(--c-primary)' }}
-                  >
-                    Contact support →
-                  </a>
+
+                  {retryError && (
+                    <p className="text-xs font-medium mb-2" style={{ color: '#DC2626' }}>{retryError}</p>
+                  )}
+
+                  <div className="flex items-center gap-4">
+                    <button
+                      type="button"
+                      onClick={handleRetryPayment}
+                      disabled={retrying}
+                      className="text-xs font-semibold px-3 py-1.5 rounded"
+                      style={{ background: 'var(--c-primary)', color: 'white', opacity: retrying ? 0.7 : 1 }}
+                    >
+                      {retrying ? 'Starting payment…' : 'Retry Payment'}
+                    </button>
+                    <a
+                      href={`mailto:${CONTACT.email}`}
+                      className="text-xs font-semibold underline"
+                      style={{ color: 'var(--c-primary)' }}
+                    >
+                      Contact support →
+                    </a>
+                  </div>
                 </div>
               )}
 
@@ -348,24 +385,33 @@ export default function OrdersPage() {
             <p className="section-eyebrow mb-1">Purchase History</p>
             <h1 className="font-display text-3xl" style={{ color: 'var(--c-primary)' }}>My Orders</h1>
           </div>
-          {!loading && (
-            <button
-              onClick={fetchOrders}
-              className="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5"
-              style={{
-                border: '1px solid var(--c-border)', borderRadius: 6,
-                color: 'var(--c-text-muted)', background: 'white',
-              }}
-              onMouseEnter={e => e.currentTarget.style.color = 'var(--c-primary)'}
-              onMouseLeave={e => e.currentTarget.style.color = 'var(--c-text-muted)'}
+          <div className="flex items-center gap-3">
+            <Link
+              to="/payment-history"
+              className="text-xs font-medium px-3 py-1.5"
+              style={{ border: '1px solid var(--c-border)', borderRadius: 6, color: 'var(--c-text-muted)', background: 'white' }}
             >
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                <polyline points="23 4 23 10 17 10"/>
-                <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
-              </svg>
-              Refresh
-            </button>
-          )}
+              Payment History
+            </Link>
+            {!loading && (
+              <button
+                onClick={fetchOrders}
+                className="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5"
+                style={{
+                  border: '1px solid var(--c-border)', borderRadius: 6,
+                  color: 'var(--c-text-muted)', background: 'white',
+                }}
+                onMouseEnter={e => e.currentTarget.style.color = 'var(--c-primary)'}
+                onMouseLeave={e => e.currentTarget.style.color = 'var(--c-text-muted)'}
+              >
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                  <polyline points="23 4 23 10 17 10"/>
+                  <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
+                </svg>
+                Refresh
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Error */}

@@ -42,6 +42,7 @@ import ProductDetail              from './pages/products/ProductDetail'
 import CheckoutPage               from './pages/checkout/CheckoutPage'
 import ProductPaymentVerify       from './pages/checkout/ProductPaymentVerify'
 import OrdersPage                 from './pages/orders/OrdersPage'
+import PaymentHistory             from './pages/payment/PaymentHistory'
 import AdminDashboard             from './pages/admin/AdminDashboard'
 import TestimonialsPage           from './pages/testimonials/TestimonialsPage'
 import TestimonialsAdmin          from './pages/admin/TestimonialsAdmin'
@@ -154,6 +155,7 @@ export default function App() {
           <Route path="/checkout"                 element={<CheckoutPage />} />
           <Route path="/checkout/verify"          element={<ProductPaymentVerify />} />
           <Route path="/orders"                   element={<OrdersPage />} />
+          <Route path="/payment-history"          element={<PaymentHistory />} />
 
           {/* ── Coming soon placeholders ─────────────────────── */}
           <Route path="/faq"             element={<ComingSoon title="FAQs" />} />

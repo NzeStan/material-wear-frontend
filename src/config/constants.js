@@ -15,6 +15,10 @@ export const APP = {
   name:            import.meta.env.VITE_APP_NAME        || 'Material Wear Limited',
   tagline:         import.meta.env.VITE_APP_TAGLINE      || 'Crafted for the Distinguished',
   apiBase:         API_BASE_URL,
+  // Backend host with no /api suffix — for links to Django admin, docs, etc.
+  // Derived from VITE_API_BASE_URL so there is one place to update when the
+  // backend URL (e.g. an ngrok tunnel) changes.
+  backendOrigin:   API_BASE_URL.replace(/\/api$/, ''),
   env:             import.meta.env.VITE_APP_ENV          || 'development',
   enableAnalytics: import.meta.env.VITE_ENABLE_ANALYTICS === 'true',
   enableDarkMode:  import.meta.env.VITE_ENABLE_DARK_MODE === 'true',
@@ -94,6 +98,7 @@ export const FOOTER_LINKS = {
     { label: 'Create Account',       path: '/register' },
     { label: 'My Profile',           path: '/profile' },
     { label: 'My Orders',            path: '/orders' },
+    { label: 'Payment History',      path: '/payment-history' },
     { label: 'Bulk Orders',          path: '/my-orders' },
     { label: 'My Image Orders',      path: '/image-my-orders' },
     { label: 'Organiser Dashboard',  path: '/organiser' },

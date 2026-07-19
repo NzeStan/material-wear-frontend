@@ -652,6 +652,7 @@ function OrderLinkCard({ link, isAdmin, onSaved, onDeleted }) {
   const [coupons, setCoupons]         = useState([])
   const [couponsLoading, setCouponsLoading] = useState(false)
   const [couponsError, setCouponsError] = useState('')
+  const [couponCheck, setCouponCheck] = useState({})
 
   const url       = shareableUrl(link.slug)
   const isExpired = link.is_expired
@@ -686,6 +687,16 @@ function OrderLinkCard({ link, isAdmin, onSaved, onDeleted }) {
     }
   }
 
+  async function validateCoupon(coupon) {
+    setCouponCheck(prev => ({ ...prev, [coupon.id]: { loading: true } }))
+    try {
+      const data = await api.post(`/image_bulk_orders/coupons/${coupon.id}/validate_coupon/`, {})
+      setCouponCheck(prev => ({ ...prev, [coupon.id]: { loading: false, data } }))
+    } catch (err) {
+      setCouponCheck(prev => ({ ...prev, [coupon.id]: { loading: false, error: err.message || 'Validation failed.' } }))
+    }
+  }
+
   function handleToggle() {
     setExpanded(x => !x)
     if (!expanded) {
@@ -710,10 +721,7 @@ function OrderLinkCard({ link, isAdmin, onSaved, onDeleted }) {
         word: `/image_bulk_orders/links/${link.slug}/download_word/`,
         excel: `/image_bulk_orders/links/${link.slug}/generate_size_summary/`,
       }
-      const res = await fetch(`${API_BASE}${endpoints[type]}`, {
-        headers: api.getAuthHeader(),
-      })
-      if (!res.ok) throw new Error('Download failed')
+      const res = await api.getBlob(endpoints[type])
       const blob = await res.blob()
       const extMap = { pdf: '.pdf', word: '.docx', excel: '.xlsx' }
       const a = document.createElement('a')
@@ -980,15 +988,36 @@ function OrderLinkCard({ link, isAdmin, onSaved, onDeleted }) {
                         <p className="text-sm" style={{ color: '#dc2626' }}>{couponsError}</p>
                       ) : coupons.length > 0 ? (
                         <div className="space-y-2">
-                          {coupons.slice(0, 8).map(coupon => (
-                            <div key={coupon.id} className="flex items-center justify-between rounded-lg px-3 py-2 text-xs"
-                              style={{ background: '#fff', border: '1px solid var(--c-border)' }}>
-                              <span className="font-mono" style={{ color: 'var(--c-text)' }}>{coupon.code}</span>
-                              <span style={{ color: coupon.is_used ? '#10b981' : 'var(--c-text-muted)' }}>
-                                {coupon.is_used ? 'Used' : 'Unused'}
-                              </span>
-                            </div>
-                          ))}
+                          {coupons.slice(0, 8).map(coupon => {
+                            const validation = couponCheck[coupon.id]
+                            return (
+                              <div key={coupon.id} className="rounded-lg px-3 py-2 text-xs"
+                                style={{ background: '#fff', border: '1px solid var(--c-border)' }}>
+                                <div className="flex items-center justify-between gap-3">
+                                  <div>
+                                    <span className="font-mono" style={{ color: 'var(--c-text)' }}>{coupon.code}</span>
+                                    <span className="ml-2" style={{ color: coupon.is_used ? '#10b981' : 'var(--c-text-muted)' }}>
+                                      {coupon.is_used ? 'Used' : 'Unused'}
+                                    </span>
+                                  </div>
+                                  <button onClick={() => validateCoupon(coupon)} disabled={validation?.loading}
+                                    className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg font-semibold"
+                                    style={{ background: 'var(--c-bg)', color: 'var(--c-primary)', border: '1px solid var(--c-border)' }}>
+                                    {validation?.loading ? <SpinnerIcon size={12} /> : <CheckIcon size={12} />}
+                                    <span>Validate</span>
+                                  </button>
+                                </div>
+                                {validation?.data && (
+                                  <p className="mt-1" style={{ color: validation.data.valid ? '#15803d' : '#b91c1c' }}>
+                                    {validation.data.valid ? 'Coupon validated successfully.' : validation.data.message}
+                                  </p>
+                                )}
+                                {validation?.error && (
+                                  <p className="mt-1" style={{ color: '#b91c1c' }}>{validation.error}</p>
+                                )}
+                              </div>
+                            )
+                          })}
                           {coupons.length > 8 && (
                             <p className="text-xs" style={{ color: 'var(--c-text-muted)' }}>
                               Showing first 8 coupons. Open your admin API list for the full set.
