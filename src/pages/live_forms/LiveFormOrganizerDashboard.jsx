@@ -905,7 +905,7 @@ export default function LiveFormOrganizerDashboard() {
             <StatPill label="Total Entries"  value={totalEntries} color="#fde68a" />
             <button
               onClick={() => setShowCreate(true)}
-              style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.85rem 1.5rem', background: '#fff', color: 'var(--c-primary)', border: 'none', borderRadius: 12, fontWeight: 800, cursor: 'pointer', fontSize: '0.9rem', marginLeft: 'auto' }}
+              style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.85rem 1.5rem', background: 'var(--c-surface)', color: 'var(--c-primary)', border: 'none', borderRadius: 12, fontWeight: 800, cursor: 'pointer', fontSize: '0.9rem', marginLeft: 'auto' }}
             >
               <IconPlus /> New Form
             </button>

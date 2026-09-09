@@ -143,7 +143,7 @@ function FeedShell({ children }) {
 
 function FeedHeader({ onRefresh, refreshing, totalLoaded, totalAvailable }) {
   return (
-    <div className="mb-6 overflow-hidden rounded-xl" style={{ background: 'white', border: '1px solid rgba(6,78,59,0.12)', boxShadow: '0 10px 30px rgba(47,41,31,0.08)' }}>
+    <div className="mb-6 overflow-hidden rounded-xl" style={{ background: 'var(--c-surface)', border: '1px solid rgba(6,78,59,0.12)', boxShadow: '0 10px 30px rgba(47,41,31,0.08)' }}>
       <div className="px-5 py-5 sm:px-6" style={{ background: 'radial-gradient(circle at top left, rgba(6,78,59,0.1), transparent 48%), linear-gradient(135deg, #F8F4EC 0%, #FFFFFF 100%)' }}>
         <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
@@ -159,7 +159,7 @@ function FeedHeader({ onRefresh, refreshing, totalLoaded, totalAvailable }) {
             onClick={onRefresh}
             disabled={refreshing}
             className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold transition-colors"
-            style={{ background: 'white', color: 'var(--c-primary)', border: '1px solid rgba(6,78,59,0.14)', borderRadius: 999 }}
+            style={{ background: 'var(--c-surface)', color: 'var(--c-primary)', border: '1px solid rgba(6,78,59,0.14)', borderRadius: 999 }}
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
               <polyline points="23 4 23 10 17 10" />
@@ -276,7 +276,7 @@ function ImagePost({ item }) {
   const { ref, inView } = useInViewPlayback()
 
   return (
-    <article ref={ref} className="overflow-hidden rounded-xl" style={{ background: 'white', border: '1px solid rgba(47,41,31,0.08)', boxShadow: inView ? '0 16px 40px rgba(47,41,31,0.14)' : '0 8px 24px rgba(47,41,31,0.08)', transition: 'box-shadow .2s ease' }}>
+    <article ref={ref} className="overflow-hidden rounded-xl" style={{ background: 'var(--c-surface)', border: '1px solid rgba(47,41,31,0.08)', boxShadow: inView ? '0 16px 40px rgba(47,41,31,0.14)' : '0 8px 24px rgba(47,41,31,0.08)', transition: 'box-shadow .2s ease' }}>
       <PostHeader
         accent="var(--c-primary)"
         badge="MW"
@@ -331,7 +331,7 @@ function VideoPost({ item }) {
   const { ref, inView } = useInViewPlayback()
 
   return (
-    <article ref={ref} className="overflow-hidden rounded-xl" style={{ background: 'white', border: '1px solid rgba(47,41,31,0.08)', boxShadow: inView ? '0 16px 40px rgba(47,41,31,0.14)' : '0 8px 24px rgba(47,41,31,0.08)', transition: 'box-shadow .2s ease' }}>
+    <article ref={ref} className="overflow-hidden rounded-xl" style={{ background: 'var(--c-surface)', border: '1px solid rgba(47,41,31,0.08)', boxShadow: inView ? '0 16px 40px rgba(47,41,31,0.14)' : '0 8px 24px rgba(47,41,31,0.08)', transition: 'box-shadow .2s ease' }}>
       <PostHeader
         accent="#FF0000"
         badge="YT"
@@ -420,7 +420,7 @@ function TruncatedText({ text }) {
 
 function PostSkeleton() {
   return (
-    <div className="overflow-hidden rounded-xl" style={{ background: 'white', border: '1px solid rgba(47,41,31,0.08)', boxShadow: '0 8px 24px rgba(47,41,31,0.08)' }}>
+    <div className="overflow-hidden rounded-xl" style={{ background: 'var(--c-surface)', border: '1px solid rgba(47,41,31,0.08)', boxShadow: '0 8px 24px rgba(47,41,31,0.08)' }}>
       <div className="flex items-center gap-3 px-4 py-4 sm:px-5">
         <div className="feed-skeleton h-11 w-11 rounded-full" />
         <div className="flex-1">
@@ -551,7 +551,7 @@ export default function FeedPage() {
       ) : !error && (
         <div className="space-y-5">
           {items.length === 0 ? (
-            <div className="rounded-xl px-8 py-20 text-center" style={{ background: 'white', border: '1px solid rgba(47,41,31,0.08)', boxShadow: '0 8px 24px rgba(47,41,31,0.08)' }}>
+            <div className="rounded-xl px-8 py-20 text-center" style={{ background: 'var(--c-surface)', border: '1px solid rgba(47,41,31,0.08)', boxShadow: '0 8px 24px rgba(47,41,31,0.08)' }}>
               <p className="mb-2 text-base font-semibold" style={{ color: 'var(--c-text)' }}>No posts yet</p>
               <p className="text-sm" style={{ color: 'var(--c-text-muted)' }}>Check back soon for a mix of fresh photos and videos.</p>
             </div>

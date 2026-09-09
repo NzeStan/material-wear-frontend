@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { APP, NAVIGATION, SOCIAL } from '../config/constants'
 import { ASSETS } from '../config/assets'
 import { useIsScrolled } from '../hooks/useScrollAnimation'
+import { useTheme } from '../hooks/useTheme'
 import { useAuth } from '../context/AuthContext'
 import { useCart } from '../context/CartContext'
 
@@ -23,6 +24,7 @@ export default function Navbar() {
   const navigate   = useNavigate()
   const { user, isAuthenticated, logout }     = useAuth()
   const { itemCount, setDrawerOpen }          = useCart()
+  const { isDark, toggleTheme, enabled: themeEnabled } = useTheme()
   const dropdownRef = useRef(null)
 
   // Close menu on route change
@@ -65,7 +67,7 @@ export default function Navbar() {
           style={{ background: 'var(--c-primary)', color: 'var(--c-accent-light)' }}
         >
           <span className="text-xs tracking-widest uppercase font-medium">
-            ✦ Free delivery on orders over ₦50,000 — Shop our new collection ✦
+            ✦ Nation wide delivery  — Shop our new collection ✦
           </span>
           <button
             onClick={() => setAnnouncementVisible(false)}
@@ -90,12 +92,14 @@ export default function Navbar() {
             {/* Logo */}
             <Link to="/" className="flex items-center gap-3 flex-shrink-0" aria-label={APP.name}>
               <div className="flex items-center gap-2">
-                <div
-                  className="w-8 h-8 flex items-center justify-center rounded-sm font-display font-bold text-white text-sm"
-                  style={{ background: 'var(--c-primary)' }}
-                >
-                  MW
-                </div>
+                <img
+                  src={ASSETS.logo.main}
+                  alt=""
+                  width="32"
+                  height="32"
+                  className="w-8 h-8 rounded-sm object-contain"
+                  loading="eager"
+                />
                 <span
                   className="font-display font-semibold tracking-wide text-lg hidden sm:block"
                   style={{ color: 'var(--c-primary)' }}
@@ -133,6 +137,31 @@ export default function Navbar() {
 
             {/* Right Actions */}
             <div className="flex items-center gap-3 sm:gap-4">
+
+              {/* Theme toggle — only rendered when VITE_ENABLE_DARK_MODE is on */}
+              {themeEnabled && (
+                <button
+                  type="button"
+                  onClick={toggleTheme}
+                  className="opacity-70 hover:opacity-100 transition-opacity"
+                  style={{ color: 'var(--c-primary)' }}
+                  aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
+                  title={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
+                >
+                  {isDark ? (
+                    /* sun */
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                      <circle cx="12" cy="12" r="4" />
+                      <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41" />
+                    </svg>
+                  ) : (
+                    /* moon */
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                      <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+                    </svg>
+                  )}
+                </button>
+              )}
 
               {/* Social icons (desktop) */}
               <div className="hidden lg:flex items-center gap-3">
@@ -190,7 +219,7 @@ export default function Navbar() {
                   {accountOpen && (
                     <div
                       className="absolute right-0 top-full mt-3 w-52 py-2 shadow-lg z-50"
-                      style={{ background: 'white', border: '1px solid rgba(6,78,59,0.1)', boxShadow: 'var(--shadow-lg)' }}
+                      style={{ background: 'var(--c-surface)', border: '1px solid rgba(6,78,59,0.1)', boxShadow: 'var(--shadow-lg)' }}
                     >
                       {/* User info header */}
                       <div className="px-4 py-3 border-b" style={{ borderColor: '#F3F4F6' }}>

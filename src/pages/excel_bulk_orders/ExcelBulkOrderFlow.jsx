@@ -548,7 +548,7 @@ export default function ExcelBulkOrderFlow() {
 
             {vs === 'completed' && (
               <div className="rounded-2xl overflow-hidden"
-                style={{ border: '1px solid var(--c-border)', background: '#fff' }}>
+                style={{ border: '1px solid var(--c-border)', background: 'var(--c-surface)' }}>
                 <div className="px-6 py-5 flex items-center justify-between gap-3"
                   style={{ borderBottom: '1px solid var(--c-border)', background: 'var(--c-bg-warm)' }}>
                   <div>
@@ -560,7 +560,7 @@ export default function ExcelBulkOrderFlow() {
                   <button
                     onClick={loadParticipants}
                     className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm"
-                    style={{ background: 'white', color: 'var(--c-text)', border: '1px solid var(--c-border)' }}
+                    style={{ background: 'var(--c-surface)', color: 'var(--c-text)', border: '1px solid var(--c-border)' }}
                   >
                     <RefreshIcon /> Refresh
                   </button>
@@ -631,7 +631,7 @@ export default function ExcelBulkOrderFlow() {
             {/* ══ STEP 1: DOWNLOAD TEMPLATE ═══════════════════════════════════════ */}
             {(vs === 'pending' || vs === 'uploaded' || vs === 'invalid') && (
               <div className="rounded-2xl overflow-hidden"
-                style={{ border: '1px solid var(--c-border)', background: '#fff' }}>
+                style={{ border: '1px solid var(--c-border)', background: 'var(--c-surface)' }}>
                 <div className="px-6 py-5 flex items-center gap-3"
                   style={{ borderBottom: '1px solid var(--c-border)', background: 'var(--c-bg-warm)' }}>
                   <div
@@ -677,7 +677,7 @@ export default function ExcelBulkOrderFlow() {
             {/* ══ STEP 2: UPLOAD ═══════════════════════════════════════════════════ */}
             {(vs === 'pending' || vs === 'uploaded' || vs === 'invalid') && (
               <div className="rounded-2xl overflow-hidden"
-                style={{ border: `1.5px solid ${vs === 'invalid' ? 'rgba(239,68,68,0.3)' : 'var(--c-border)'}`, background: '#fff' }}>
+                style={{ border: `1.5px solid ${vs === 'invalid' ? 'rgba(239,68,68,0.3)' : 'var(--c-border)'}`, background: 'var(--c-surface)' }}>
                 <div className="px-6 py-5 flex items-center gap-3"
                   style={{ borderBottom: '1px solid var(--c-border)', background: 'var(--c-bg-warm)' }}>
                   <div
@@ -722,7 +722,7 @@ export default function ExcelBulkOrderFlow() {
             {/* ══ STEP 3: VALIDATE ═════════════════════════════════════════════════ */}
             {vs === 'uploaded' && (
               <div className="rounded-2xl overflow-hidden"
-                style={{ border: '1.5px solid var(--c-primary)', background: '#fff', boxShadow: '0 4px 24px rgba(6,78,59,0.08)' }}>
+                style={{ border: '1.5px solid var(--c-primary)', background: 'var(--c-surface)', boxShadow: '0 4px 24px rgba(6,78,59,0.08)' }}>
                 <div className="px-6 py-5 flex items-center gap-3"
                   style={{ borderBottom: '1px solid var(--c-border)', background: 'var(--c-bg-warm)' }}>
                   <div className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold text-white"
@@ -758,7 +758,7 @@ export default function ExcelBulkOrderFlow() {
             {/* ══ VALIDATION ERRORS ════════════════════════════════════════════════ */}
             {vs === 'invalid' && (order.validation_summary || validationResult) && (
               <div className="rounded-2xl overflow-hidden"
-                style={{ border: '1.5px solid rgba(239,68,68,0.3)', background: '#fff' }}>
+                style={{ border: '1.5px solid rgba(239,68,68,0.3)', background: 'var(--c-surface)' }}>
                 <div className="px-6 py-5 flex items-center justify-between gap-4"
                   style={{ borderBottom: '1px solid var(--c-border)', background: 'rgba(239,68,68,0.04)' }}>
                   <div>
@@ -819,7 +819,7 @@ export default function ExcelBulkOrderFlow() {
             {/* ══ STEP 4: VALID → PAY ══════════════════════════════════════════════ */}
             {vs === 'valid' && (
               <div className="rounded-2xl overflow-hidden"
-                style={{ border: '1.5px solid var(--c-primary)', background: '#fff', boxShadow: '0 4px 24px rgba(6,78,59,0.08)' }}>
+                style={{ border: '1.5px solid var(--c-primary)', background: 'var(--c-surface)', boxShadow: '0 4px 24px rgba(6,78,59,0.08)' }}>
                 <div className="px-6 py-5 flex items-center gap-3"
                   style={{ borderBottom: '1px solid var(--c-border)', background: 'rgba(16,185,129,0.04)' }}>
                   <div className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0"
@@ -922,7 +922,7 @@ export default function ExcelBulkOrderFlow() {
           <aside className="lg:col-span-2 space-y-4">
 
             {settingsForm && vs !== 'completed' && (
-              <div className="rounded-2xl p-5" style={{ border: '1px solid var(--c-border)', background: '#fff' }}>
+              <div className="rounded-2xl p-5" style={{ border: '1px solid var(--c-border)', background: 'var(--c-surface)' }}>
                 <div className="flex items-center gap-2 mb-4" style={{ color: 'var(--c-primary)' }}>
                   <ExcelIcon />
                   <h3 className="font-display text-base">Campaign Settings</h3>
@@ -981,7 +981,7 @@ export default function ExcelBulkOrderFlow() {
 
             {/* Order summary */}
             <div className="rounded-2xl overflow-hidden"
-              style={{ border: '1px solid var(--c-border)', background: '#fff' }}>
+              style={{ border: '1px solid var(--c-border)', background: 'var(--c-surface)' }}>
               <div className="px-5 py-4" style={{ borderBottom: '1px solid var(--c-border)', background: 'var(--c-bg-warm)' }}>
                 <h3 className="font-display text-base" style={{ color: 'var(--c-primary)' }}>Order Summary</h3>
               </div>
@@ -1004,7 +1004,7 @@ export default function ExcelBulkOrderFlow() {
             </div>
 
             {order.payment_status && (
-              <div className="rounded-2xl p-5" style={{ border: '1px solid var(--c-border)', background: '#fff' }}>
+              <div className="rounded-2xl p-5" style={{ border: '1px solid var(--c-border)', background: 'var(--c-surface)' }}>
                 <h4 className="text-sm font-semibold mb-2" style={{ color: 'var(--c-primary)' }}>Paid Participants Page</h4>
                 <p className="text-xs" style={{ color: 'var(--c-text-muted)' }}>
                   A public social-proof page is available for this completed Excel order.
@@ -1028,7 +1028,7 @@ export default function ExcelBulkOrderFlow() {
                 onClick={handleDownloadTemplate}
                 disabled={downloading}
                 className="w-full flex items-center gap-3 p-4 rounded-2xl text-left transition-all hover:shadow-md"
-                style={{ border: '1px solid var(--c-border)', background: '#fff' }}
+                style={{ border: '1px solid var(--c-border)', background: 'var(--c-surface)' }}
               >
                 <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
                   style={{ background: 'var(--c-bg-warm)', color: 'var(--c-primary)' }}>
@@ -1066,7 +1066,7 @@ export default function ExcelBulkOrderFlow() {
             </div>
 
             {/* Help */}
-            <div className="rounded-2xl p-5" style={{ border: '1px solid var(--c-border)', background: '#fff' }}>
+            <div className="rounded-2xl p-5" style={{ border: '1px solid var(--c-border)', background: 'var(--c-surface)' }}>
               <p className="text-xs" style={{ color: 'var(--c-text-muted)' }}>
                 Having trouble? Contact us at{' '}
                 <a href={`mailto:${CONTACT.email}`} className="underline" style={{ color: 'var(--c-primary)' }}>

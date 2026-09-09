@@ -93,7 +93,7 @@ function OrderCard({ order, onPay, paying, onExpand, detailLoading }) {
       className="rounded-2xl overflow-hidden transition-shadow duration-200"
       style={{
         border: `1.5px solid ${order.paid ? 'rgba(16,185,129,0.25)' : isExpired ? 'rgba(239,68,68,0.2)' : 'var(--c-border)'}`,
-        background: '#fff',
+        background: 'var(--c-surface)',
         boxShadow: expanded ? '0 8px 32px rgba(0,0,0,0.08)' : '0 2px 8px rgba(0,0,0,0.04)',
       }}
     >

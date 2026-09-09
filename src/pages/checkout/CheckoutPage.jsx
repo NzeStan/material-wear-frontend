@@ -32,7 +32,7 @@ function Field({ label, required, hint, error, children }) {
 
 function SectionCard({ icon, title, subtitle, children }) {
   return (
-    <div className="p-6 rounded-lg" style={{ background: 'white', border: '1px solid var(--c-border)' }}>
+    <div className="p-6 rounded-lg" style={{ background: 'var(--c-surface)', border: '1px solid var(--c-border)' }}>
       <div className="flex items-start gap-3 mb-5 pb-4 border-b" style={{ borderColor: 'var(--c-border)' }}>
         <div className="w-8 h-8 rounded flex items-center justify-center flex-shrink-0"
           style={{ background: 'rgba(6,78,59,0.08)' }}>
@@ -517,7 +517,7 @@ export default function CheckoutPage() {
 
             {/* ── Right: order summary ─────────────────────────── */}
             <div className="lg:sticky lg:top-24">
-              <div className="rounded-lg overflow-hidden" style={{ background: 'white', border: '1px solid var(--c-border)' }}>
+              <div className="rounded-lg overflow-hidden" style={{ background: 'var(--c-surface)', border: '1px solid var(--c-border)' }}>
                 <div className="px-5 py-4 border-b" style={{ borderColor: 'var(--c-border)', background: 'var(--c-bg-warm)' }}>
                   <h3 className="font-semibold text-sm" style={{ color: 'var(--c-text)' }}>Order Summary</h3>
                 </div>

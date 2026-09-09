@@ -218,7 +218,7 @@ export function TermsConditions() {
     <LegalPage
       title="Terms & Conditions"
       eyebrow="Legal"
-      lastUpdated="January 1, 2025"
+      lastUpdated="August 15, 2026"
     >
       <div className="info-box">
         <p className="!mb-0">
@@ -235,8 +235,8 @@ export function TermsConditions() {
 
       <h2>2. Company Information</h2>
       <p>
-        {name} is a registered clothing business operating in Nigeria. Our registered address is{' '}
-        {CONTACT.address}. You can contact us at <a href={`mailto:${email}`}>{email}</a>.
+        {name} is a registered clothing business operating in Nigeria{BRAND.rcNumber ? ` (RC ${BRAND.rcNumber})` : ''}.
+        Our registered address is {CONTACT.address}. You can contact us at <a href={`mailto:${email}`}>{email}</a>.
       </p>
 
       <h2>3. Products and Services</h2>
@@ -268,31 +268,23 @@ export function TermsConditions() {
 
       <h2>5. Shipping and Delivery</h2>
       <p>
-        Delivery timelines vary by location. Standard delivery within Lagos takes 2–3 business days;
-        other states within Nigeria take 3–7 business days. We are not responsible for delays caused
-        by third-party logistics providers or circumstances beyond our control.
+        We deliver nationwide. We are not responsible for delays caused by third-party logistics
+        providers or circumstances beyond our control.
       </p>
-
-      <h2>6. Returns and Exchanges</h2>
       <p>
-        We want you to love your purchase. If you are not completely satisfied:
+        Bringing or placing your work early helps us deliver on time. Where work is brought or ordered
+        late, we will do our very best to deliver within your timeline, but we cannot be held liable if
+        we are unable to do so.
       </p>
-      <ul>
-        <li>Items may be returned within <strong>14 days</strong> of delivery</li>
-        <li>Items must be unworn, unwashed, and in original packaging with tags attached</li>
-        <li>Sale items are final and non-refundable unless defective</li>
-        <li>Customised or personalised items cannot be returned</li>
-        <li>Return shipping costs are the customer's responsibility unless the item is defective</li>
-      </ul>
 
-      <h2>7. Intellectual Property</h2>
+      <h2>6. Intellectual Property</h2>
       <p>
         All content on this website — including but not limited to text, images, logos, graphics, and
         design — is the exclusive property of {name} and is protected by applicable intellectual property
         laws. Unauthorised use, reproduction, or distribution is strictly prohibited.
       </p>
 
-      <h2>8. User Conduct</h2>
+      <h2>7. User Conduct</h2>
       <p>You agree not to:</p>
       <ul>
         <li>Use our website for any unlawful purpose</li>
@@ -302,29 +294,116 @@ export function TermsConditions() {
         <li>Scrape, copy, or redistribute our content without permission</li>
       </ul>
 
-      <h2>9. Limitation of Liability</h2>
+      <h2>8. Limitation of Liability</h2>
       <p>
         To the fullest extent permitted by law, {name} shall not be liable for any indirect, incidental,
         special, or consequential damages arising from your use of our services or products. Our total
         liability shall not exceed the amount paid for the specific product or service in question.
       </p>
 
-      <h2>10. Governing Law</h2>
+      <h2>9. Governing Law</h2>
       <p>
         These Terms and Conditions are governed by and construed in accordance with the laws of the
         Federal Republic of Nigeria. Any disputes arising from these terms shall be subject to the
         exclusive jurisdiction of the Nigerian courts.
       </p>
 
-      <h2>11. Amendments</h2>
+      <h2>10. Amendments</h2>
       <p>
         We reserve the right to modify these Terms at any time. Updated terms will be posted on this
         page with a revised date. Continued use of our services constitutes acceptance of any changes.
       </p>
 
-      <h2>12. Contact</h2>
+      <h2>11. Contact</h2>
       <p>
         Questions about these Terms? Contact us at <a href={`mailto:${email}`}>{email}</a> or visit
+        our <Link to="/contact">Contact page</Link>.
+      </p>
+    </LegalPage>
+  )
+}
+
+// ── COOKIE POLICY ──────────────────────────────────────────────
+export function CookiePolicy() {
+  const name = APP.name
+  const email = CONTACT.email
+
+  useEffect(() => { document.title = `Cookie Policy — ${name}` }, [])
+
+  return (
+    <LegalPage
+      title="Cookie Policy"
+      eyebrow="Legal"
+      lastUpdated="August 16, 2026"
+    >
+      <div className="info-box">
+        <p className="!mb-0">
+          <strong>Summary:</strong> We use a small number of cookies to keep you signed in and to serve
+          relevant ads. We don't use analytics or advertising-tracking cookies beyond what Google AdSense sets.
+        </p>
+      </div>
+
+      <h2>1. What Are Cookies</h2>
+      <p>
+        Cookies are small text files placed on your device when you visit a website. We also use similar
+        browser-storage technologies (such as local storage) for some of the same purposes. This policy covers
+        both, alongside our <Link to="/privacy-policy">Privacy Policy</Link>.
+      </p>
+
+      <h2>2. Strictly Necessary Cookies</h2>
+      <p>These are required for the site to function and can't be switched off in our systems:</p>
+      <ul>
+        <li><strong>Session cookie:</strong> keeps you signed in during a Google or GitHub sign-in and links your browser to your account session</li>
+        <li><strong>CSRF cookie:</strong> protects form submissions on our site from cross-site request forgery</li>
+      </ul>
+
+      <h2>3. Local Storage</h2>
+      <p>
+        We use your browser's local storage (not a cookie, but a similar on-device technology) for:
+      </p>
+      <ul>
+        <li><strong>Staying signed in:</strong> an authentication token so you don't have to log in on every visit</li>
+        <li><strong>Light/dark mode:</strong> remembering your display preference</li>
+      </ul>
+      <p>
+        Your cart is tied to your account or session and stored on our servers, not in a cookie on your device.
+      </p>
+
+      <h2>4. Advertising Cookies</h2>
+      <p>
+        We use Google AdSense to display ads. Google may set cookies to show ads based on your visits to this
+        and other sites, and to measure ad performance. Google's use of advertising cookies is governed by{' '}
+        <a href="https://policies.google.com/technologies/ads" target="_blank" rel="noopener noreferrer">Google's own policy</a>.
+        You can opt out of personalised advertising through{' '}
+        <a href="https://adssettings.google.com" target="_blank" rel="noopener noreferrer">Google Ad Settings</a>.
+      </p>
+
+      <h2>5. Third-Party Cookies</h2>
+      <p>
+        When you check out, our payment processor (Paystack) may set its own cookies on its own domain to
+        process your payment securely. We don't control these — see their privacy policy for details.
+      </p>
+      <p>
+        We do <strong>not</strong> currently use Google Analytics, Google Tag Manager, or any social media
+        pixel/tracking cookies.
+      </p>
+
+      <h2>6. Managing Cookies</h2>
+      <p>
+        Most browsers let you block or delete cookies through their settings. Blocking strictly necessary
+        cookies will prevent you from staying signed in via Google or GitHub. Clearing your browser's local
+        storage will sign you out and reset your display preference.
+      </p>
+
+      <h2>7. Changes to This Policy</h2>
+      <p>
+        We may update this Cookie Policy from time to time. Changes will be posted on this page with an
+        updated revision date.
+      </p>
+
+      <h2>8. Contact Us</h2>
+      <p>
+        Questions about this Cookie Policy? Contact us at <a href={`mailto:${email}`}>{email}</a> or visit
         our <Link to="/contact">Contact page</Link>.
       </p>
     </LegalPage>

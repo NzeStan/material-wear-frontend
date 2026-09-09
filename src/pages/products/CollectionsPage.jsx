@@ -20,7 +20,7 @@ function ProductCard({ product, urlType }) {
     >
       <div
         style={{
-          background: 'white',
+          background: 'var(--c-surface)',
           border: '1px solid var(--c-border)',
           borderRadius: 8,
           overflow: 'hidden',
@@ -110,7 +110,7 @@ function ProductCard({ product, urlType }) {
 
 function CardSkeleton() {
   return (
-    <div style={{ background: 'white', border: '1px solid var(--c-border)', borderRadius: 8, overflow: 'hidden' }}>
+    <div style={{ background: 'var(--c-surface)', border: '1px solid var(--c-border)', borderRadius: 8, overflow: 'hidden' }}>
       <div className="skeleton" style={{ paddingBottom: '100%' }} />
       <div className="p-3">
         <div className="skeleton h-3 rounded mb-2" style={{ width: '70%' }} />
@@ -349,7 +349,7 @@ export default function CollectionsPage() {
               <div
                 key={label}
                 className="rounded-lg px-4 py-3"
-                style={{ background: 'white', border: '1px solid var(--c-border)' }}
+                style={{ background: 'var(--c-surface)', border: '1px solid var(--c-border)' }}
               >
                 <p className="text-xs font-semibold mb-1" style={{ color: 'var(--c-text)' }}>{label}</p>
                 <p className="text-xs">

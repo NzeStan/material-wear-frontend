@@ -1,8 +1,31 @@
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { APP, CONTACT, SOCIAL, FOOTER_LINKS, BRAND } from '../config/constants'
+import { api } from '../services/api'
 
 export default function Footer() {
   const year = new Date().getFullYear()
+
+  const [email, setEmail] = useState('')
+  const [subStatus, setSubStatus] = useState('idle') // idle | sending | success | error
+  const [subMsg, setSubMsg] = useState('')
+
+  const handleSubscribe = async (e) => {
+    e.preventDefault()
+    setSubStatus('sending')
+    setSubMsg('')
+    try {
+      // 201 = newly subscribed, 200 = already subscribed — both fine, the
+      // backend returns a friendly `detail` either way.
+      const data = await api.post('/contact/subscribe/', { email: email.trim() })
+      setSubMsg(data?.detail || 'Thanks for subscribing!')
+      setSubStatus('success')
+      setEmail('')
+    } catch (err) {
+      setSubMsg(err.message || 'Could not subscribe. Please try again.')
+      setSubStatus('error')
+    }
+  }
 
   return (
     <footer style={{ background: 'var(--c-primary)', color: 'var(--c-white)' }}>
@@ -20,29 +43,43 @@ export default function Footer() {
                 Exclusive collections, styling tips, and early access to new drops.
               </p>
             </div>
-            <form
-              className="flex w-full md:w-auto gap-0"
-              onSubmit={(e) => { e.preventDefault(); alert('Thank you for subscribing!') }}
-              aria-label="Newsletter signup"
-            >
-              <input
-                type="email"
-                required
-                placeholder="Your email address"
-                className="px-4 py-3.5 text-sm outline-none w-full md:w-72 text-gray-800"
-                style={{ background: 'rgba(255,255,255,0.95)', border: 'none', borderRadius: 0 }}
-                aria-label="Email address"
-              />
-              <button
-                type="submit"
-                className="px-6 py-3.5 text-xs font-semibold tracking-widest uppercase text-white whitespace-nowrap transition-all duration-300"
-                style={{ background: 'var(--c-accent)' }}
-                onMouseEnter={e => e.currentTarget.style.background = 'var(--c-accent-dark)'}
-                onMouseLeave={e => e.currentTarget.style.background = 'var(--c-accent)'}
+            <div className="w-full md:w-auto">
+              <form
+                className="flex w-full md:w-auto gap-0"
+                onSubmit={handleSubscribe}
+                aria-label="Newsletter signup"
               >
-                Subscribe
-              </button>
-            </form>
+                <input
+                  type="email"
+                  required
+                  value={email}
+                  onChange={e => setEmail(e.target.value)}
+                  placeholder="Your email address"
+                  className="px-4 py-3.5 text-sm outline-none w-full md:w-72 text-gray-800"
+                  style={{ background: 'rgba(255,255,255,0.95)', border: 'none', borderRadius: 0 }}
+                  aria-label="Email address"
+                />
+                <button
+                  type="submit"
+                  disabled={subStatus === 'sending'}
+                  className="px-6 py-3.5 text-xs font-semibold tracking-widest uppercase text-white whitespace-nowrap transition-all duration-300"
+                  style={{ background: 'var(--c-accent)', opacity: subStatus === 'sending' ? 0.7 : 1 }}
+                  onMouseEnter={e => e.currentTarget.style.background = 'var(--c-accent-dark)'}
+                  onMouseLeave={e => e.currentTarget.style.background = 'var(--c-accent)'}
+                >
+                  {subStatus === 'sending' ? 'Subscribing…' : 'Subscribe'}
+                </button>
+              </form>
+              {subMsg && (
+                <p
+                  className="text-xs mt-2"
+                  style={{ color: subStatus === 'error' ? '#fca5a5' : 'var(--c-accent-light, #fcd34d)' }}
+                  role="status"
+                >
+                  {subMsg}
+                </p>
+              )}
+            </div>
           </div>
         </div>
       </div>
@@ -90,8 +127,9 @@ export default function Footer() {
               {[
                 { href: SOCIAL.instagram, label: 'Instagram', icon: <><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/></> },
                 { href: SOCIAL.facebook,  label: 'Facebook',  icon: <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/> },
-                { href: SOCIAL.twitter,   label: 'Twitter',   icon: <path d="M23 3a10.9 10.9 0 0 1-3.14 1.53 4.48 4.48 0 0 0-7.86 3v1A10.66 10.66 0 0 1 3 4s-4 9 5 13a11.64 11.64 0 0 1-7 2c9 5 20 0 20-11.5a4.5 4.5 0 0 0-.08-.83A7.72 7.72 0 0 0 23 3z"/> },
+                { href: SOCIAL.twitter,   label: 'X',         icon: <path fill="currentColor" stroke="none" d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/> },
                 { href: SOCIAL.tiktok,    label: 'TikTok',    icon: <path d="M9 12a4 4 0 1 0 4 4V4a5 5 0 0 0 5 5"/> },
+                ...(SOCIAL.youtube ? [{ href: SOCIAL.youtube, label: 'YouTube', icon: <path fill="currentColor" stroke="none" d="M23.498 6.186a2.999 2.999 0 0 0-2.112-2.136C19.505 3.5 12 3.5 12 3.5s-7.505 0-9.386.55A2.999 2.999 0 0 0 .502 6.186 31.26 31.26 0 0 0 0 12a31.26 31.26 0 0 0 .502 5.814 2.999 2.999 0 0 0 2.112 2.136C4.495 20.5 12 20.5 12 20.5s7.505 0 9.386-.55a2.999 2.999 0 0 0 2.112-2.136A31.26 31.26 0 0 0 24 12a31.26 31.26 0 0 0-.502-5.814zM9.75 15.568V8.432L15.818 12z"/> }] : []),
               ].map(({ href, label, icon }) => (
                 <a key={label} href={href} target="_blank" rel="noopener noreferrer"
                   aria-label={label}
@@ -139,7 +177,10 @@ export default function Footer() {
       <div className="border-t" style={{ borderColor: 'rgba(255,255,255,0.08)' }}>
         <div className="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-5">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-3 text-xs opacity-40">
-            <p>© {year} {APP.name}. All rights reserved. Founded {BRAND.founded}.</p>
+            <p>
+              © {year} {APP.name}. All rights reserved. Founded {BRAND.founded}.
+              {BRAND.rcNumber && ` RC ${BRAND.rcNumber}.`}
+            </p>
             <div className="flex items-center gap-6">
               <Link to="/privacy-policy" className="hover:opacity-100 transition-opacity">Privacy</Link>
               <Link to="/terms" className="hover:opacity-100 transition-opacity">Terms</Link>

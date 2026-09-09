@@ -51,7 +51,7 @@ function RejectModal({ onConfirm, onClose, busy }) {
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 60, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16, background: 'rgba(0,0,0,0.5)' }}
       onClick={e => { if (e.target === e.currentTarget) onClose() }}>
-      <div style={{ background: 'white', borderRadius: 10, padding: '28px 32px', maxWidth: 420, width: '100%', boxShadow: '0 20px 60px rgba(0,0,0,0.25)' }}>
+      <div style={{ background: 'var(--c-surface)', borderRadius: 10, padding: '28px 32px', maxWidth: 420, width: '100%', boxShadow: '0 20px 60px rgba(0,0,0,0.25)' }}>
         <h3 style={{ fontWeight: 700, fontSize: 16, color: 'var(--c-primary)', marginBottom: 6 }}>Reject Review</h3>
         <p style={{ fontSize: 12, color: 'var(--c-text-muted)', marginBottom: 16 }}>Reason is optional — for internal records only.</p>
         <textarea rows={3} className="form-input" placeholder="e.g. Contains promotional content…"
@@ -62,7 +62,7 @@ function RejectModal({ onConfirm, onClose, busy }) {
             {busy ? 'Rejecting…' : 'Confirm Reject'}
           </button>
           <button onClick={onClose}
-            style={{ padding: '9px 18px', fontSize: 13, fontWeight: 600, background: 'white', color: 'var(--c-text)', border: '1px solid var(--c-border)', borderRadius: 6, cursor: 'pointer' }}>
+            style={{ padding: '9px 18px', fontSize: 13, fontWeight: 600, background: 'var(--c-surface)', color: 'var(--c-text)', border: '1px solid var(--c-border)', borderRadius: 6, cursor: 'pointer' }}>
             Cancel
           </button>
         </div>
@@ -76,7 +76,7 @@ function BulkRejectModal({ count, onConfirm, onClose, busy }) {
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 60, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16, background: 'rgba(0,0,0,0.5)' }}
       onClick={e => { if (e.target === e.currentTarget) onClose() }}>
-      <div style={{ background: 'white', borderRadius: 10, padding: '28px 32px', maxWidth: 420, width: '100%', boxShadow: '0 20px 60px rgba(0,0,0,0.25)' }}>
+      <div style={{ background: 'var(--c-surface)', borderRadius: 10, padding: '28px 32px', maxWidth: 420, width: '100%', boxShadow: '0 20px 60px rgba(0,0,0,0.25)' }}>
         <h3 style={{ fontWeight: 700, fontSize: 16, color: '#DC2626', marginBottom: 6 }}>Bulk Reject ({count} reviews)</h3>
         <p style={{ fontSize: 12, color: 'var(--c-text-muted)', marginBottom: 16 }}>This will reject all selected reviews. Provide a reason if applicable.</p>
         <textarea rows={3} className="form-input" placeholder="Reason (optional)…"
@@ -87,7 +87,7 @@ function BulkRejectModal({ count, onConfirm, onClose, busy }) {
             {busy ? 'Rejecting…' : `Reject ${count} Reviews`}
           </button>
           <button onClick={onClose}
-            style={{ padding: '9px 18px', fontSize: 13, fontWeight: 600, background: 'white', color: 'var(--c-text)', border: '1px solid var(--c-border)', borderRadius: 6, cursor: 'pointer' }}>
+            style={{ padding: '9px 18px', fontSize: 13, fontWeight: 600, background: 'var(--c-surface)', color: 'var(--c-text)', border: '1px solid var(--c-border)', borderRadius: 6, cursor: 'pointer' }}>
             Cancel
           </button>
         </div>
@@ -230,8 +230,8 @@ function ReviewDetailModal({ id, categories, onClose, onSaved, onDeleted }) {
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 70, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16, background: 'rgba(0,0,0,0.55)' }}
       onClick={e => { if (e.target === e.currentTarget) onClose() }}>
-      <div style={{ background: 'white', borderRadius: 12, width: '100%', maxWidth: 820, maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 24px 80px rgba(0,0,0,0.28)' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '18px 22px', borderBottom: '1px solid var(--c-border)', position: 'sticky', top: 0, background: 'white', zIndex: 1 }}>
+      <div style={{ background: 'var(--c-surface)', borderRadius: 12, width: '100%', maxWidth: 820, maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 24px 80px rgba(0,0,0,0.28)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '18px 22px', borderBottom: '1px solid var(--c-border)', position: 'sticky', top: 0, background: 'var(--c-surface)', zIndex: 1 }}>
           <div>
             <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--c-text-muted)', marginBottom: 4 }}>Review Manager</p>
             <h3 style={{ fontSize: 18, color: 'var(--c-primary)', margin: 0 }}>Review Details</h3>
@@ -263,7 +263,7 @@ function ReviewDetailModal({ id, categories, onClose, onSaved, onDeleted }) {
                   )}
                 </div>
 
-                <div style={{ background: 'white', border: '1px solid var(--c-border)', borderRadius: 10, padding: '18px 18px' }}>
+                <div style={{ background: 'var(--c-surface)', border: '1px solid var(--c-border)', borderRadius: 10, padding: '18px 18px' }}>
                   <div style={{ marginBottom: 12 }}>
                     <label className="form-label" htmlFor="review-category">Category</label>
                     <select id="review-category" className="form-input" value={form.category_id} onChange={e => set('category_id', e.target.value)}>
@@ -288,7 +288,7 @@ function ReviewDetailModal({ id, categories, onClose, onSaved, onDeleted }) {
                 </div>
               </div>
 
-              <div style={{ background: 'white', border: '1px solid var(--c-border)', borderRadius: 10, padding: '18px 18px', marginBottom: 22 }}>
+              <div style={{ background: 'var(--c-surface)', border: '1px solid var(--c-border)', borderRadius: 10, padding: '18px 18px', marginBottom: 22 }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 12, flexWrap: 'wrap' }}>
                   <div>
                     <p style={{ fontSize: 12, fontWeight: 700, color: 'var(--c-text)', marginBottom: 3 }}>Attachments</p>
@@ -345,7 +345,7 @@ function ReviewDetailModal({ id, categories, onClose, onSaved, onDeleted }) {
                 </button>
                 <div style={{ display: 'flex', gap: 10 }}>
                   <button onClick={onClose}
-                    style={{ fontSize: 12, fontWeight: 600, padding: '9px 14px', borderRadius: 6, background: 'white', color: 'var(--c-text)', border: '1px solid var(--c-border)', cursor: 'pointer' }}>
+                    style={{ fontSize: 12, fontWeight: 600, padding: '9px 14px', borderRadius: 6, background: 'var(--c-surface)', color: 'var(--c-text)', border: '1px solid var(--c-border)', cursor: 'pointer' }}>
                     Close
                   </button>
                   <button onClick={save} disabled={saving}
@@ -395,7 +395,7 @@ function ReviewRow({ t, selected, onSelect, onAction, onManage }) {
         />
       )}
 
-      <div style={{ background: 'white', border: `1px solid ${selected ? 'var(--c-primary)' : 'var(--c-border)'}`, borderRadius: 8, padding: '18px 20px', transition: 'border-color .15s', boxShadow: selected ? '0 0 0 2px rgba(6,78,59,0.12)' : 'none' }}>
+      <div style={{ background: 'var(--c-surface)', border: `1px solid ${selected ? 'var(--c-primary)' : 'var(--c-border)'}`, borderRadius: 8, padding: '18px 20px', transition: 'border-color .15s', boxShadow: selected ? '0 0 0 2px rgba(6,78,59,0.12)' : 'none' }}>
 
         {/* Top row */}
         <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start', marginBottom: 12 }}>
@@ -511,7 +511,7 @@ function ReviewRow({ t, selected, onSelect, onAction, onManage }) {
             </button>
           )}
           <button onClick={() => onManage(t.id)}
-            style={{ fontSize: 11, fontWeight: 700, padding: '5px 12px', borderRadius: 6, background: 'white', color: 'var(--c-primary)', border: '1px solid rgba(6,78,59,0.18)', cursor: 'pointer' }}>
+            style={{ fontSize: 11, fontWeight: 700, padding: '5px 12px', borderRadius: 6, background: 'var(--c-surface)', color: 'var(--c-primary)', border: '1px solid rgba(6,78,59,0.18)', cursor: 'pointer' }}>
             Manage
           </button>
           <span style={{ flex: 1 }} />
@@ -612,7 +612,7 @@ function CategoriesTab({ catStats }) {
     <div>
       {/* Category-level stats from /categories/stats/ */}
       {catStats && catStats.length > 0 && (
-        <div style={{ marginBottom: 20, padding: '14px 18px', background: 'white', border: '1px solid var(--c-border)', borderRadius: 8 }}>
+        <div style={{ marginBottom: 20, padding: '14px 18px', background: 'var(--c-surface)', border: '1px solid var(--c-border)', borderRadius: 8 }}>
           <p style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--c-text-muted)', marginBottom: 10 }}>Reviews per category</p>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
             {catStats.map(cs => (
@@ -632,7 +632,7 @@ function CategoriesTab({ catStats }) {
           + New Category
         </button>
       ) : (
-        <div style={{ background: 'white', border: '1px solid var(--c-primary)', borderRadius: 8, padding: '18px 20px', marginBottom: 20 }}>
+        <div style={{ background: 'var(--c-surface)', border: '1px solid var(--c-primary)', borderRadius: 8, padding: '18px 20px', marginBottom: 20 }}>
           <p style={{ fontSize: 13, fontWeight: 700, color: 'var(--c-primary)', marginBottom: 14 }}>New Category</p>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: 12, marginBottom: 14 }}>
             <div>
@@ -650,7 +650,7 @@ function CategoriesTab({ catStats }) {
               {busy === 'create' ? 'Creating…' : 'Create'}
             </button>
             <button onClick={() => { setCreating(false); setNewName(''); setNewDesc('') }}
-              style={{ fontSize: 12, fontWeight: 600, padding: '7px 14px', borderRadius: 6, background: 'white', color: 'var(--c-text)', border: '1px solid var(--c-border)', cursor: 'pointer' }}>
+              style={{ fontSize: 12, fontWeight: 600, padding: '7px 14px', borderRadius: 6, background: 'var(--c-surface)', color: 'var(--c-text)', border: '1px solid var(--c-border)', cursor: 'pointer' }}>
               Cancel
             </button>
           </div>
@@ -663,13 +663,13 @@ function CategoriesTab({ catStats }) {
           <Spinner />
         </div>
       ) : cats.length === 0 ? (
-        <div style={{ textAlign: 'center', padding: '40px 20px', background: 'white', border: '1px solid var(--c-border)', borderRadius: 8 }}>
+        <div style={{ textAlign: 'center', padding: '40px 20px', background: 'var(--c-surface)', border: '1px solid var(--c-border)', borderRadius: 8 }}>
           <p style={{ fontSize: 13, color: 'var(--c-text-muted)' }}>No categories yet. Create one above.</p>
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           {cats.map(cat => (
-            <div key={cat.id} style={{ background: 'white', border: '1px solid var(--c-border)', borderRadius: 8, padding: '14px 18px', display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div key={cat.id} style={{ background: 'var(--c-surface)', border: '1px solid var(--c-border)', borderRadius: 8, padding: '14px 18px', display: 'flex', alignItems: 'center', gap: 12 }}>
               {editId === cat.id ? (
                 <>
                   <input className="form-input" value={editName} onChange={e => setEditName(e.target.value)} style={{ flex: 1 }} placeholder="Category name" />
@@ -679,7 +679,7 @@ function CategoriesTab({ catStats }) {
                     Save
                   </button>
                   <button onClick={() => setEditId(null)}
-                    style={{ fontSize: 12, fontWeight: 600, padding: '6px 12px', borderRadius: 6, background: 'white', color: 'var(--c-text)', border: '1px solid var(--c-border)', cursor: 'pointer' }}>
+                    style={{ fontSize: 12, fontWeight: 600, padding: '6px 12px', borderRadius: 6, background: 'var(--c-surface)', color: 'var(--c-text)', border: '1px solid var(--c-border)', cursor: 'pointer' }}>
                     Cancel
                   </button>
                 </>
@@ -906,11 +906,11 @@ export default function TestimonialsAdmin() {
             <button
               onClick={() => { loadStats(); loadReviews(revTab, 1) }}
               disabled={loading}
-              style={{ fontSize: 12, fontWeight: 600, padding: '8px 14px', borderRadius: 6, border: '1px solid var(--c-border)', background: 'white', color: 'var(--c-text)', cursor: 'pointer', opacity: loading ? 0.6 : 1 }}>
+              style={{ fontSize: 12, fontWeight: 600, padding: '8px 14px', borderRadius: 6, border: '1px solid var(--c-border)', background: 'var(--c-surface)', color: 'var(--c-text)', cursor: 'pointer', opacity: loading ? 0.6 : 1 }}>
               ↻ Refresh
             </button>
             <Link to="/testimonials" target="_blank" rel="noopener noreferrer"
-              style={{ fontSize: 12, fontWeight: 600, padding: '8px 16px', borderRadius: 6, border: '1px solid var(--c-border)', background: 'white', color: 'var(--c-text)', textDecoration: 'none' }}>
+              style={{ fontSize: 12, fontWeight: 600, padding: '8px 16px', borderRadius: 6, border: '1px solid var(--c-border)', background: 'var(--c-surface)', color: 'var(--c-text)', textDecoration: 'none' }}>
               View Public Page ↗
             </Link>
           </div>
@@ -990,7 +990,7 @@ export default function TestimonialsAdmin() {
             {loading ? (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                 {[1,2,3].map(i => (
-                  <div key={i} style={{ background: 'white', border: '1px solid var(--c-border)', borderRadius: 8, padding: 20 }}>
+                  <div key={i} style={{ background: 'var(--c-surface)', border: '1px solid var(--c-border)', borderRadius: 8, padding: 20 }}>
                     <div style={{ display: 'flex', gap: 12, marginBottom: 12 }}>
                       <div className="taskel" style={{ width: 38, height: 38, borderRadius: '50%', flexShrink: 0 }} />
                       <div style={{ flex: 1 }}>
@@ -1004,7 +1004,7 @@ export default function TestimonialsAdmin() {
                 ))}
               </div>
             ) : items.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '60px 20px', background: 'white', border: '1px solid var(--c-border)', borderRadius: 8 }}>
+              <div style={{ textAlign: 'center', padding: '60px 20px', background: 'var(--c-surface)', border: '1px solid var(--c-border)', borderRadius: 8 }}>
                 <p style={{ fontSize: 14, fontWeight: 600, color: 'var(--c-text)', marginBottom: 4 }}>No reviews here</p>
                 <p style={{ fontSize: 12, color: 'var(--c-text-muted)' }}>Switch tabs or check back later.</p>
               </div>

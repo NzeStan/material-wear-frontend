@@ -1,0 +1,17 @@
+node_modules/
+dist/
+dist-ssr/
+build/
+.git/
+
+# Real secrets — must never end up baked into an image layer.
+# VITE_* values come in via --build-arg instead, not this file.
+.env
+.env.local
+.env.*.local
+
+.vscode/
+.idea/
+*.log
+coverage/
+.cache/

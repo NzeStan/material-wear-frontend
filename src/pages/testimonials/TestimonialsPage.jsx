@@ -52,7 +52,7 @@ function inferUploadMediaType(file) {
 
 function SkeletonCard() {
   return (
-    <div style={{ background: 'white', border: '1px solid var(--c-border)', borderRadius: 8, padding: 24 }}>
+    <div style={{ background: 'var(--c-surface)', border: '1px solid var(--c-border)', borderRadius: 8, padding: 24 }}>
       <div className="tskel" style={{ height: 14, width: 100, borderRadius: 4, marginBottom: 16 }} />
       <div className="tskel" style={{ height: 11, width: '100%', borderRadius: 4, marginBottom: 8 }} />
       <div className="tskel" style={{ height: 11, width: '80%', borderRadius: 4, marginBottom: 8 }} />
@@ -72,7 +72,7 @@ function TestimonialCard({ t, onClick }) {
   return (
     <div
       onClick={() => onClick(t)}
-      style={{ background: 'white', border: '1px solid var(--c-border)', borderRadius: 8, padding: 24, display: 'flex', flexDirection: 'column', gap: 10, boxShadow: '0 1px 4px rgba(0,0,0,0.04)', cursor: 'pointer', transition: 'box-shadow .15s, transform .15s' }}
+      style={{ background: 'var(--c-surface)', border: '1px solid var(--c-border)', borderRadius: 8, padding: 24, display: 'flex', flexDirection: 'column', gap: 10, boxShadow: '0 1px 4px rgba(0,0,0,0.04)', cursor: 'pointer', transition: 'box-shadow .15s, transform .15s' }}
       onMouseEnter={e => { e.currentTarget.style.boxShadow = '0 4px 16px rgba(0,0,0,0.1)'; e.currentTarget.style.transform = 'translateY(-2px)' }}
       onMouseLeave={e => { e.currentTarget.style.boxShadow = '0 1px 4px rgba(0,0,0,0.04)'; e.currentTarget.style.transform = 'translateY(0)' }}
     >
@@ -190,9 +190,9 @@ function DetailModal({ id, onClose }) {
       style={{ position: 'fixed', inset: 0, zIndex: 60, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16, background: 'rgba(0,0,0,0.55)' }}
       onClick={e => { if (e.target === e.currentTarget) onClose() }}
     >
-      <div style={{ background: 'white', borderRadius: 10, width: '100%', maxWidth: 540, maxHeight: '88vh', overflowY: 'auto', boxShadow: '0 24px 80px rgba(0,0,0,0.3)' }}>
+      <div style={{ background: 'var(--c-surface)', borderRadius: 10, width: '100%', maxWidth: 540, maxHeight: '88vh', overflowY: 'auto', boxShadow: '0 24px 80px rgba(0,0,0,0.3)' }}>
         {/* Header */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '18px 24px', borderBottom: '1px solid var(--c-border)', position: 'sticky', top: 0, background: 'white', zIndex: 1 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '18px 24px', borderBottom: '1px solid var(--c-border)', position: 'sticky', top: 0, background: 'var(--c-surface)', zIndex: 1 }}>
           <p style={{ fontSize: 12, fontWeight: 600, color: 'var(--c-text-muted)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Customer Review</p>
           <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: 'var(--c-text-muted)', display: 'flex', alignItems: 'center' }}>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -511,7 +511,7 @@ function SubmitForm({ categories, onSuccess }) {
           }
           <div style={{ display: 'flex', gap: 8 }}>
             <button type="button" onClick={() => fileInputRef.current?.click()}
-              style={{ fontSize: 12, fontWeight: 600, padding: '6px 14px', borderRadius: 6, border: '1px solid var(--c-border)', background: 'white', cursor: 'pointer', color: 'var(--c-text)' }}>
+              style={{ fontSize: 12, fontWeight: 600, padding: '6px 14px', borderRadius: 6, border: '1px solid var(--c-border)', background: 'var(--c-surface)', cursor: 'pointer', color: 'var(--c-text)' }}>
               {avatarPreview ? 'Change' : 'Upload Photo'}
             </button>
             {avatarPreview && (
@@ -538,7 +538,7 @@ function SubmitForm({ categories, onSuccess }) {
             </p>
           </div>
           <button type="button" onClick={() => attachmentInputRef.current?.click()}
-            style={{ fontSize: 12, fontWeight: 700, padding: '8px 14px', borderRadius: 6, border: '1px solid var(--c-border)', background: 'white', cursor: 'pointer', color: 'var(--c-text)' }}>
+            style={{ fontSize: 12, fontWeight: 700, padding: '8px 14px', borderRadius: 6, border: '1px solid var(--c-border)', background: 'var(--c-surface)', cursor: 'pointer', color: 'var(--c-text)' }}>
             Add Media
           </button>
           <input
@@ -554,7 +554,7 @@ function SubmitForm({ categories, onSuccess }) {
         {attachments.length > 0 && (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 10 }}>
             {attachments.map(item => (
-              <div key={item.id} style={{ border: '1px solid var(--c-border)', borderRadius: 8, overflow: 'hidden', background: 'white' }}>
+              <div key={item.id} style={{ border: '1px solid var(--c-border)', borderRadius: 8, overflow: 'hidden', background: 'var(--c-surface)' }}>
                 <div style={{ height: 108, background: 'var(--c-bg-warm)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   {item.mediaType === 'image' ? (
                     <img src={item.preview} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
@@ -828,7 +828,7 @@ export default function TestimonialsPage() {
             {[1,2,3,4,5,6].map(i => <SkeletonCard key={i} />)}
           </div>
         ) : items.length === 0 ? (
-          <div style={{ background: 'white', border: '1px solid var(--c-border)', borderRadius: 8, padding: '60px 20px', textAlign: 'center' }}>
+          <div style={{ background: 'var(--c-surface)', border: '1px solid var(--c-border)', borderRadius: 8, padding: '60px 20px', textAlign: 'center' }}>
             <p style={{ fontSize: 14, fontWeight: 600, color: 'var(--c-text)', marginBottom: 6 }}>No reviews found</p>
             <p style={{ fontSize: 12, color: 'var(--c-text-muted)' }}>
               {activeFilters ? 'Try different filters, or ' : 'Be the first — '}
@@ -856,7 +856,7 @@ export default function TestimonialsPage() {
 
         {/* ── Submit form ───────────────────────────────────────── */}
         <div id="submit" ref={submitRef}
-          style={{ marginTop: 60, background: 'white', border: '1px solid var(--c-border)', borderRadius: 10, padding: '40px 36px', scrollMarginTop: 80 }}>
+          style={{ marginTop: 60, background: 'var(--c-surface)', border: '1px solid var(--c-border)', borderRadius: 10, padding: '40px 36px', scrollMarginTop: 80 }}>
           <div style={{ maxWidth: 560, margin: '0 auto' }}>
             {submitted ? (
               <div style={{ textAlign: 'center', padding: '40px 0' }}>

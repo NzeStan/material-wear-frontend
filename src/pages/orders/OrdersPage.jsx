@@ -99,7 +99,7 @@ function OrderCard({ order }) {
   return (
     <div
       style={{
-        background: 'white',
+        background: 'var(--c-surface)',
         border: '1px solid var(--c-border)',
         borderRadius: 8,
         overflow: 'hidden',
@@ -329,7 +329,7 @@ function InfoRow({ label, value, mono }) {
 
 function SkeletonCard() {
   return (
-    <div style={{ background: 'white', border: '1px solid var(--c-border)', borderRadius: 8, overflow: 'hidden' }}>
+    <div style={{ background: 'var(--c-surface)', border: '1px solid var(--c-border)', borderRadius: 8, overflow: 'hidden' }}>
       <div className="flex items-center gap-4 px-5 py-4">
         <div className="skeleton h-6 w-20 rounded" />
         <div className="flex-1">
@@ -389,7 +389,7 @@ export default function OrdersPage() {
             <Link
               to="/payment-history"
               className="text-xs font-medium px-3 py-1.5"
-              style={{ border: '1px solid var(--c-border)', borderRadius: 6, color: 'var(--c-text-muted)', background: 'white' }}
+              style={{ border: '1px solid var(--c-border)', borderRadius: 6, color: 'var(--c-text-muted)', background: 'var(--c-surface)' }}
             >
               Payment History
             </Link>
@@ -399,7 +399,7 @@ export default function OrdersPage() {
                 className="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5"
                 style={{
                   border: '1px solid var(--c-border)', borderRadius: 6,
-                  color: 'var(--c-text-muted)', background: 'white',
+                  color: 'var(--c-text-muted)', background: 'var(--c-surface)',
                 }}
                 onMouseEnter={e => e.currentTarget.style.color = 'var(--c-primary)'}
                 onMouseLeave={e => e.currentTarget.style.color = 'var(--c-text-muted)'}
@@ -440,7 +440,7 @@ export default function OrdersPage() {
           orders.length === 0 ? (
             <div
               className="flex flex-col items-center justify-center py-20 text-center"
-              style={{ background: 'white', border: '1px solid var(--c-border)', borderRadius: 8 }}
+              style={{ background: 'var(--c-surface)', border: '1px solid var(--c-border)', borderRadius: 8 }}
             >
               <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1"
                 style={{ color: '#E5E7EB', marginBottom: 12 }}>

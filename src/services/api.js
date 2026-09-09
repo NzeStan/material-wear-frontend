@@ -1,7 +1,10 @@
-const DEFAULT_API_BASE_URL = 'http://localhost:8000/api'
-const BASE_URL = (import.meta.env.VITE_API_BASE_URL || DEFAULT_API_BASE_URL)
-  .trim()
-  .replace(/\/+$/, '')
+import { APP } from '../config/constants'
+
+// Single source of truth for the API base URL lives in config/constants.js
+// (dev defaults to localhost, prod requires VITE_API_BASE_URL explicitly) —
+// don't recompute it here too, that's how this and constants.js drifted out
+// of sync before.
+const BASE_URL = APP.apiBase
 const SHOULD_SKIP_NGROK_WARNING = /\.ngrok-free\.app(?:\/|$)/.test(BASE_URL)
 
 function getToken() {

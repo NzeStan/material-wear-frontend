@@ -17,7 +17,12 @@
     <meta property="og:url" content="https://www.materialwearlimited.com/" />
     <meta property="og:title" content="Material Wear Limited — Premium Clothing Brand" />
     <meta property="og:description" content="Discover premium quality clothing crafted with passion. Timeless, sustainable fashion for the modern individual." />
-    <meta property="og:image" content="YOUR_OG_IMAGE_URL" />
+    <!-- Must be a static, absolute URL — crawlers (WhatsApp, Facebook, Twitter)
+         don't run JS, so this can't be injected from assets.js at runtime.
+         Keep in sync with ASSETS.social.og in src/config/assets.js. -->
+    <meta property="og:image" content="https://res.cloudinary.com/dhhaiy58r/image/upload/c_fill,w_1200,h_630/v1729164616/mj_11226_4_no8nuz.jpg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
     <meta property="og:site_name" content="Material Wear Limited" />
     <meta property="og:locale" content="en_NG" />
 
@@ -26,15 +31,17 @@
     <meta name="twitter:url" content="https://www.materialwearlimited.com/" />
     <meta name="twitter:title" content="Material Wear Limited — Premium Clothing Brand" />
     <meta name="twitter:description" content="Discover premium quality clothing crafted with passion." />
-    <meta name="twitter:image" content="YOUR_OG_IMAGE_URL" />
+    <meta name="twitter:image" content="https://res.cloudinary.com/dhhaiy58r/image/upload/c_fill,w_1200,h_630/v1729164616/mj_11226_4_no8nuz.jpg" />
     <meta name="twitter:site" content="@materialwearlimited" />
 
     <!-- ====== CANONICAL URL ====== -->
     <link rel="canonical" href="https://www.materialwearlimited.com/" />
 
     <!-- ====== FAVICON ====== -->
-    <link rel="icon" type="image/png" href="YOUR_FAVICON_URL" />
-    <link rel="apple-touch-icon" href="YOUR_APPLE_TOUCH_ICON_URL" />
+    <!-- Real brand logo, square-cropped by Cloudinary. Keep in sync with
+         ASSETS.logo.icon in src/config/assets.js. -->
+    <link rel="icon" type="image/png" href="https://res.cloudinary.com/dhhaiy58r/image/upload/c_fill,w_180,h_180/v1786786523/hood_pics/material_logo_dl7qrk.png" />
+    <link rel="apple-touch-icon" href="https://res.cloudinary.com/dhhaiy58r/image/upload/c_fill,w_180,h_180/v1786786523/hood_pics/material_logo_dl7qrk.png" />
 
     <!-- ====== GOOGLE FONTS ====== -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -45,8 +52,9 @@
     />
 
     <!-- ====== GOOGLE ADSENSE ====== -->
-    <!-- Replace ca-pub-XXXXXXXXXXXXXXXX with your actual AdSense publisher ID -->
-    <!-- <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-XXXXXXXXXXXXXXXX" crossorigin="anonymous"></script> -->
+    <!-- Loaded from src/utils/adsense.js using VITE_ADSENSE_ID, so it only
+         runs once a real publisher ID is configured. Set the ID in .env
+         rather than hardcoding a script tag here. -->
 
     <!-- ====== STRUCTURED DATA (JSON-LD) for Google ====== -->
     <script type="application/ld+json">
@@ -55,22 +63,25 @@
       "@type": "ClothingStore",
       "name": "Material Wear Limited",
       "description": "Premium quality clothing brand crafted with passion and sustainability in mind.",
+      "identifier": "RC 9161164",
       "url": "https://www.materialwearlimited.com",
-      "logo": "YOUR_LOGO_URL",
-      "image": "YOUR_OG_IMAGE_URL",
+      "logo": "https://res.cloudinary.com/dhhaiy58r/image/upload/v1786786523/hood_pics/material_logo_dl7qrk.png",
+      "image": "https://res.cloudinary.com/dhhaiy58r/image/upload/c_fill,w_1200,h_630/v1729164616/mj_11226_4_no8nuz.jpg",
       "priceRange": "$$",
-      "telephone": "YOUR_PHONE_NUMBER",
+      "telephone": "+2348071000804",
       "email": "hello@materialwearlimited.com",
       "address": {
         "@type": "PostalAddress",
-        "streetAddress": "YOUR_STREET_ADDRESS",
-        "addressLocality": "YOUR_CITY",
+        "streetAddress": "16 Emejiaka Street, Ngwa Rd",
+        "addressLocality": "Aba",
+        "addressRegion": "Abia State",
         "addressCountry": "NG"
       },
       "sameAs": [
         "https://www.instagram.com/materialwearlimited",
         "https://www.facebook.com/materialwearlimited",
-        "https://twitter.com/materialwearlimited"
+        "https://x.com/materialwearlimited",
+        "https://www.youtube.com/channel/UCQnF948bKmhs2_quXEJY0og"
       ]
     }
     </script>

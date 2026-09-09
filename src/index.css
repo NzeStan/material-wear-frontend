@@ -24,6 +24,13 @@
   --c-white:       #FFFFFF;
   --c-black:       #0A0A0A;
 
+  /* Card/panel background. Use this instead of a hardcoded white so panels
+     follow the theme — --c-white stays literally white for things that must
+     stay white in both themes (e.g. text on the dark green primary). */
+  --c-surface:        #FFFFFF;
+  --c-surface-raised: #FEFCF6;
+  --c-border:         #E5E7EB;
+
   --font-display: 'Cormorant Garamond', Georgia, serif;
   --font-body:    'Jost', -apple-system, sans-serif;
 
@@ -44,6 +51,51 @@
   --transition-slow:   600ms cubic-bezier(0.4,0,0.2,1);
   --transition-spring: 500ms cubic-bezier(0.34,1.56,0.64,1);
 }
+
+/* ── DARK THEME ─────────────────────────────────────────────────
+   Applied by src/hooks/useTheme.js setting data-theme="dark" on <html>.
+   Only colour tokens are redefined — fonts, radii and transitions are
+   theme-independent.
+
+   Note on --c-primary: it's used both as heading text (291 places) and as a
+   panel background with white text on it (67 places). Those pull in opposite
+   directions in dark mode, so it becomes the brand's existing mid-green
+   (--c-primary-light), which reads acceptably in both roles — ~5.2:1 for
+   white text sitting on it, ~3.6:1 as heading text on the dark background.
+
+   Known limitation: ~830 colours are still hardcoded as hex/'white' literals
+   in inline styles across the pages and won't follow the theme. The card
+   backgrounds have been moved onto --c-surface; the rest (mostly status
+   colours like error red, which read fine on dark anyway) are a follow-up. */
+[data-theme="dark"] {
+  --c-primary:       #0a7c5f;
+  --c-primary-light: #34d399;
+  --c-primary-dark:  #065f46;
+
+  --c-bg:            #0F1412;
+  --c-bg-warm:       #161D1A;
+
+  --c-surface:        #1A211E;
+  --c-surface-raised: #222A26;
+  --c-border:         #2F3B36;
+
+  --c-accent:       #F59E0B;
+  --c-accent-dark:  #D97706;
+  --c-accent-light: #FCD34D;
+
+  --c-text:        #F3F4F6;
+  --c-text-muted:  #A8B3AE;
+  --c-text-light:  #7C8781;
+
+  /* Shadows need more opacity to register against a dark background. */
+  --shadow-sm:  0 1px 3px rgba(0,0,0,0.4), 0 1px 2px rgba(0,0,0,0.3);
+  --shadow-md:  0 4px 16px rgba(0,0,0,0.45), 0 2px 8px rgba(0,0,0,0.3);
+  --shadow-lg:  0 16px 48px rgba(0,0,0,0.5), 0 8px 24px rgba(0,0,0,0.35);
+  --shadow-xl:  0 32px 80px rgba(0,0,0,0.6);
+}
+
+/* Avoid a white flash while the theme is being applied on first paint. */
+html { background-color: var(--c-bg); }
 
 /* ── BASE RESET ─────────────────────────────────────────────── */
 *, *::before, *::after { box-sizing: border-box; }
@@ -207,7 +259,19 @@ h1, h2, h3, h4, h5, h6 {
   from { opacity: 0; transform: translateY(16px); }
   to   { opacity: 1; transform: translateY(0); }
 }
-.page-transition { animation: pageIn 0.5s cubic-bezier(0.4,0,0.2,1) both; }
+/* fill-mode is intentionally "backwards", NOT "both". "both"/"forwards"
+   would keep the animation's last computed value — transform: translateY(0)
+   — applied to the element FOREVER after it finishes. That's visually a
+   no-op offset, but per the CSS spec any transform value other than the
+   literal keyword none still makes the element a containing block for all
+   `position: fixed` descendants. Nearly every page wraps its <main> in this
+   class, so that silently broke every `fixed inset-0` overlay nested inside
+   page content (found via the gallery lightbox rendering centered on the
+   whole scrollable page instead of the viewport, and hidden below the fold
+   until scrolling back up toward the page's true middle). "backwards" still
+   avoids a flash of the pre-animation state, without leaving that lingering
+   transform behind once the animation completes. */
+.page-transition { animation: pageIn 0.5s cubic-bezier(0.4,0,0.2,1) backwards; }
 
 /* ── LOADING SCREEN ─────────────────────────────────────────── */
 @keyframes logoReveal {

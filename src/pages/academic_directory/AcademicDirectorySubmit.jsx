@@ -324,7 +324,7 @@ export default function AcademicDirectorySubmit() {
         <form onSubmit={handleSubmit} noValidate>
 
           {/* ── Personal Information ─────────────────────────── */}
-          <section className="p-6 mb-4" style={{ border: '1px solid var(--c-border)', background: 'white' }}>
+          <section className="p-6 mb-4" style={{ border: '1px solid var(--c-border)', background: 'var(--c-surface)' }}>
             <h2 className="font-display text-base font-semibold mb-5" style={{ color: 'var(--c-primary)' }}>
               Personal Information
             </h2>
@@ -350,7 +350,7 @@ export default function AcademicDirectorySubmit() {
           </section>
 
           {/* ── Institutional Information ─────────────────────── */}
-          <section className="p-6 mb-4" style={{ border: '1px solid var(--c-border)', background: 'white' }}>
+          <section className="p-6 mb-4" style={{ border: '1px solid var(--c-border)', background: 'var(--c-surface)' }}>
             <h2 className="font-display text-base font-semibold mb-5" style={{ color: 'var(--c-primary)' }}>
               Institutional Information
             </h2>
@@ -388,7 +388,7 @@ export default function AcademicDirectorySubmit() {
           </section>
 
           {/* ── Role & Academic Details ───────────────────────── */}
-          <section className="p-6 mb-4" style={{ border: '1px solid var(--c-border)', background: 'white' }}>
+          <section className="p-6 mb-4" style={{ border: '1px solid var(--c-border)', background: 'var(--c-surface)' }}>
             <h2 className="font-display text-base font-semibold mb-5" style={{ color: 'var(--c-primary)' }}>
               Role & Academic Details
             </h2>
@@ -450,7 +450,7 @@ export default function AcademicDirectorySubmit() {
           </section>
 
           {/* ── Submission Details ────────────────────────────── */}
-          <section className="p-6 mb-6" style={{ border: '1px solid var(--c-border)', background: 'white' }}>
+          <section className="p-6 mb-6" style={{ border: '1px solid var(--c-border)', background: 'var(--c-surface)' }}>
             <h2 className="font-display text-base font-semibold mb-5" style={{ color: 'var(--c-primary)' }}>
               Submission Details
             </h2>

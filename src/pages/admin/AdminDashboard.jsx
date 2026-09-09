@@ -252,7 +252,7 @@ function ToolCard({ label, desc, path, icon, color }) {
     <Link
       to={path}
       className="flex items-start gap-4 p-4 rounded-lg border transition-all duration-150"
-      style={{ background: 'white', borderColor: 'var(--c-border)' }}
+      style={{ background: 'var(--c-surface)', borderColor: 'var(--c-border)' }}
       onMouseEnter={e => {
         e.currentTarget.style.borderColor = color
         e.currentTarget.style.boxShadow = `0 0 0 3px ${color}12`
@@ -291,7 +291,7 @@ function BackendCard({ label, desc, href, color, icon }) {
       target="_blank"
       rel="noopener noreferrer"
       className="flex items-start gap-4 p-4 rounded-lg border transition-all duration-150"
-      style={{ background: 'white', borderColor: 'var(--c-border)' }}
+      style={{ background: 'var(--c-surface)', borderColor: 'var(--c-border)' }}
       onMouseEnter={e => {
         e.currentTarget.style.borderColor = color
         e.currentTarget.style.boxShadow = `0 0 0 3px ${color}12`
@@ -398,7 +398,7 @@ function GenerationPanel() {
 
       <div
         className="rounded-xl p-4"
-        style={{ background: 'white', border: '1px solid var(--c-border)' }}
+        style={{ background: 'var(--c-surface)', border: '1px solid var(--c-border)' }}
       >
         <p className="text-sm font-semibold mb-1" style={{ color: 'var(--c-text)' }}>
           Generate fulfilment PDFs from the frontend
@@ -531,9 +531,8 @@ export default function AdminDashboard() {
                 <line x1="12" y1="16" x2="12.01" y2="16"/>
               </svg>
               <p>
-                Backend links open the Django admin panel. You must be separately logged in to the Django admin
-                through the hardened `i_must_win` path. Access there is protected by two-factor authentication,
-                and production deployments may also enforce an IP whitelist before the admin can even load.
+                Backend links open the Django admin panel, which requires its own separate login, protected by
+                two-factor authentication and, in production, an IP restriction.
               </p>
             </div>
             <div className="grid sm:grid-cols-2 gap-3">

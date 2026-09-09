@@ -62,14 +62,14 @@ function QtyControl({ qty, setQty }) {
         type="button"
         onClick={() => setQty(q => Math.max(1, q - 1))}
         className="w-9 h-9 flex items-center justify-center text-lg font-bold transition-colors"
-        style={{ border: '1.5px solid var(--c-border)', borderRadius: 4, background: 'white' }}
+        style={{ border: '1.5px solid var(--c-border)', borderRadius: 4, background: 'var(--c-surface)' }}
       >−</button>
       <span className="text-lg font-semibold w-8 text-center" style={{ color: 'var(--c-text)' }}>{qty}</span>
       <button
         type="button"
         onClick={() => setQty(q => q + 1)}
         className="w-9 h-9 flex items-center justify-center text-lg font-bold transition-colors"
-        style={{ border: '1.5px solid var(--c-border)', borderRadius: 4, background: 'white' }}
+        style={{ border: '1.5px solid var(--c-border)', borderRadius: 4, background: 'var(--c-surface)' }}
       >+</button>
     </div>
   )

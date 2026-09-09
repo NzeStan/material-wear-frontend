@@ -48,7 +48,7 @@ const CreditCardIcon = () => (
 // ── Feature card ───────────────────────────────────────────────────────────────
 function FeatureCard({ icon, title, desc }) {
   return (
-    <div className="flex items-start gap-4 p-5 rounded-2xl" style={{ border: '1px solid var(--c-border)', background: '#fff' }}>
+    <div className="flex items-start gap-4 p-5 rounded-2xl" style={{ border: '1px solid var(--c-border)', background: 'var(--c-surface)' }}>
       <div className="flex-shrink-0 w-11 h-11 rounded-xl flex items-center justify-center"
         style={{ background: 'var(--c-bg-warm)', color: 'var(--c-primary)' }}>
         {icon}
@@ -233,7 +233,7 @@ export default function ExcelBulkOrderCreate() {
           {/* FORM */}
           <div className="lg:col-span-3">
             <div className="rounded-2xl overflow-hidden"
-              style={{ border: '1px solid var(--c-border)', background: '#fff', boxShadow: '0 4px 32px rgba(0,0,0,0.06)' }}>
+              style={{ border: '1px solid var(--c-border)', background: 'var(--c-surface)', boxShadow: '0 4px 32px rgba(0,0,0,0.06)' }}>
 
               <div className="px-7 pt-7 pb-5" style={{ borderBottom: '1px solid var(--c-border)' }}>
                 <p className="section-eyebrow mb-1">Step 1 of 6</p>
@@ -426,7 +426,7 @@ export default function ExcelBulkOrderCreate() {
             />
 
             {/* Resume existing */}
-            <div className="rounded-2xl p-5" style={{ border: '1px solid var(--c-border)', background: '#fff' }}>
+            <div className="rounded-2xl p-5" style={{ border: '1px solid var(--c-border)', background: 'var(--c-surface)' }}>
               <p className="text-sm font-semibold mb-1" style={{ color: 'var(--c-text)' }}>Returning coordinator?</p>
               <p className="text-xs mb-3" style={{ color: 'var(--c-text-muted)' }}>
                 If you&apos;ve already started an order, you can pick up where you left off.
@@ -441,7 +441,7 @@ export default function ExcelBulkOrderCreate() {
             </div>
 
             {/* Contact */}
-            <div className="rounded-2xl p-5" style={{ border: '1px solid var(--c-border)', background: '#fff' }}>
+            <div className="rounded-2xl p-5" style={{ border: '1px solid var(--c-border)', background: 'var(--c-surface)' }}>
               <p className="text-xs" style={{ color: 'var(--c-text-muted)' }}>
                 Need help with your Excel order? Email{' '}
                 <a href={`mailto:${CONTACT.email}`} className="underline" style={{ color: 'var(--c-primary)' }}>

@@ -177,7 +177,7 @@ export default function ProductPaymentVerify() {
 
           {/* Receipt */}
           <div className="rounded-2xl overflow-hidden mb-5"
-            style={{ border: '1px solid var(--c-border)', background: '#fff', boxShadow: '0 2px 16px rgba(0,0,0,0.05)' }}>
+            style={{ border: '1px solid var(--c-border)', background: 'var(--c-surface)', boxShadow: '0 2px 16px rgba(0,0,0,0.05)' }}>
             <div className="px-6 py-4 flex items-center gap-2"
               style={{ borderBottom: '1px solid var(--c-border)', background: 'var(--c-bg-warm)' }}>
               <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"

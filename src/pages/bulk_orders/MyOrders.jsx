@@ -320,7 +320,7 @@ export default function MyOrders() {
               onClick={reload}
               disabled={loading}
               className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium transition-colors"
-              style={{ border: '1.5px solid var(--c-border)', color: 'var(--c-text-muted)', background: '#fff' }}
+              style={{ border: '1.5px solid var(--c-border)', color: 'var(--c-text-muted)', background: 'var(--c-surface)' }}
             >
               {loading ? <SpinnerIcon size={14} /> : <RefreshIcon />}
               <span>Refresh Orders</span>
@@ -370,7 +370,7 @@ function OrderCard({ order, onPay, paying }) {
   return (
     <div
       className="rounded-2xl overflow-hidden transition-shadow hover:shadow-md"
-      style={{ border: `1.5px solid ${isPaid ? 'rgba(16,185,129,0.25)' : isExpired ? 'rgba(239,68,68,0.25)' : 'var(--c-border)'}`, background: '#fff' }}
+      style={{ border: `1.5px solid ${isPaid ? 'rgba(16,185,129,0.25)' : isExpired ? 'rgba(239,68,68,0.25)' : 'var(--c-border)'}`, background: 'var(--c-surface)' }}
     >
       {/* Card header */}
       <div

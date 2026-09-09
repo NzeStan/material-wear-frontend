@@ -151,7 +151,7 @@ export default function CartDrawer() {
       {/* Panel */}
       <div
         className={`fixed right-0 top-0 h-full z-[101] flex flex-col transition-transform duration-300 ease-in-out ${drawerOpen ? 'translate-x-0' : 'translate-x-full'}`}
-        style={{ width: '100%', maxWidth: 400, background: 'white', boxShadow: '-4px 0 32px rgba(0,0,0,0.14)' }}
+        style={{ width: '100%', maxWidth: 400, background: 'var(--c-surface)', boxShadow: '-4px 0 32px rgba(0,0,0,0.14)' }}
         role="dialog"
         aria-label="Shopping cart"
       >

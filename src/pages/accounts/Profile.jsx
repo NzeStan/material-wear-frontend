@@ -328,7 +328,7 @@ function ProfileTab({ user, permissions, canAccessAdmin, updateProfile }) {
       ) : (
         <div
           className="px-4 py-3.5 text-sm"
-          style={{ background: 'white', border: '1.5px solid #E5E7EB', color: formData[name] ? 'var(--c-text)' : 'var(--c-text-light)' }}
+          style={{ background: 'var(--c-surface)', border: '1.5px solid #E5E7EB', color: formData[name] ? 'var(--c-text)' : 'var(--c-text-light)' }}
         >
           {formData[name] || <span style={{ color: 'var(--c-text-light)' }}>Not set</span>}
         </div>
@@ -389,7 +389,7 @@ function ProfileTab({ user, permissions, canAccessAdmin, updateProfile }) {
           <label className="form-label">Username</label>
           <div
             className="px-4 py-3.5 text-sm"
-            style={{ background: 'white', border: '1.5px solid #E5E7EB', color: 'var(--c-text)' }}
+            style={{ background: 'var(--c-surface)', border: '1.5px solid #E5E7EB', color: 'var(--c-text)' }}
           >
             {user?.username || 'Not set'}
           </div>
@@ -428,7 +428,7 @@ function ProfileTab({ user, permissions, canAccessAdmin, updateProfile }) {
           ].map(({ label, to }) => (
             <Link key={to} to={to}
               className="px-4 py-3 text-xs font-medium tracking-wide text-center border transition-all duration-200"
-              style={{ border: '1.5px solid #E5E7EB', color: 'var(--c-text-muted)', background: 'white' }}
+              style={{ border: '1.5px solid #E5E7EB', color: 'var(--c-text-muted)', background: 'var(--c-surface)' }}
               onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--c-primary)'; e.currentTarget.style.color = 'var(--c-primary)' }}
               onMouseLeave={e => { e.currentTarget.style.borderColor = '#E5E7EB'; e.currentTarget.style.color = 'var(--c-text-muted)' }}
             >
@@ -638,7 +638,7 @@ function OrdersTab() {
 
       {/* Empty state */}
       <div className="reveal text-center py-20"
-        style={{ background: 'white', border: '1px solid #F3F4F6' }}
+        style={{ background: 'var(--c-surface)', border: '1px solid #F3F4F6' }}
       >
         <div
           className="w-16 h-16 mx-auto mb-5 flex items-center justify-center"

@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { Link } from 'react-router-dom'
 import { ASSETS } from '../config/assets'
-import { APP, CONTACT, SOCIAL } from '../config/constants'
+import { APP, BRAND, CONTACT, SOCIAL } from '../config/constants'
 import { useScrollRevealGroup, useParallax, useIsScrolled, useCounter } from '../hooks/useScrollAnimation'
 import { api } from '../services/api'
 
@@ -42,17 +43,21 @@ function Hero() {
 
       {/* Background */}
       <div ref={parallaxRef} className="absolute inset-0 hero-bg will-change-transform">
-        <div
-          className="absolute inset-0 bg-cover bg-center transition-opacity duration-1000"
-          style={{ backgroundImage: `url(${current.bg})` }}
-          aria-hidden="true"
-        />
-        {/* Fallback gradient (shown while image loads) */}
+        {/* Fallback gradient — sits BEHIND the image div below. A
+            background-image paints nothing until it finishes loading, so
+            this shows through during that window. It must stay behind (not
+            after) the image div, or it permanently hides the image once
+            loaded — which is what was happening before. */}
         <div
           className="absolute inset-0"
           style={{
             background: 'linear-gradient(135deg, #064E3B 0%, #0a7c5f 50%, #1a3a2a 100%)'
           }}
+        />
+        <div
+          className="absolute inset-0 bg-cover bg-center transition-opacity duration-1000"
+          style={{ backgroundImage: `url(${current.bg})` }}
+          aria-hidden="true"
         />
       </div>
 
@@ -123,7 +128,7 @@ function Hero() {
           Scroll
         </span>
         <div className="w-px h-12 overflow-hidden" style={{ background: 'rgba(255,255,255,0.3)' }}>
-          <div className="w-full h-1/2" style={{ background: 'white', animation: 'scrollLine 2s ease-in-out infinite' }} />
+          <div className="w-full h-1/2" style={{ background: 'var(--c-surface)', animation: 'scrollLine 2s ease-in-out infinite' }} />
         </div>
         <style>{`@keyframes scrollLine { 0%{transform:translateY(-100%)} 100%{transform:translateY(200%)} }`}</style>
       </div>
@@ -167,10 +172,14 @@ function Stats() {
     return () => observer.disconnect()
   }, [])
 
+  // Derived from VITE_FOUNDED_YEAR instead of a hardcoded number, so it
+  // doesn't need a manual bump every year.
+  const yearsOfExcellence = Math.max(0, new Date().getFullYear() - Number(BRAND.founded))
+
   const c1 = useCounter(5000, 2000, triggered)
   const c2 = useCounter(98, 2000, triggered)
   const c3 = useCounter(12, 1800, triggered)
-  const c4 = useCounter(4, 1500, triggered)
+  const c4 = useCounter(yearsOfExcellence, 1500, triggered)
 
   const stats = [
     { value: c1, suffix: '+', label: 'Happy Customers' },
@@ -269,6 +278,20 @@ function Gallery() {
   const [lightbox, setLightbox] = useState(null)
   const groupRef = useScrollRevealGroup(60)
 
+  // Lock background scroll while the lightbox is open, and let Escape close
+  // it — standard behaviour for a full-screen dialog, matching the scroll
+  // lock the Navbar's mobile menu already does.
+  useEffect(() => {
+    if (!lightbox) return
+    document.body.style.overflow = 'hidden'
+    const onKeyDown = (e) => { if (e.key === 'Escape') setLightbox(null) }
+    document.addEventListener('keydown', onKeyDown)
+    return () => {
+      document.body.style.overflow = ''
+      document.removeEventListener('keydown', onKeyDown)
+    }
+  }, [lightbox])
+
   return (
     <section id="gallery" className="py-24" style={{ background: 'var(--c-primary)' }}>
       <div className="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
@@ -322,8 +345,16 @@ function Gallery() {
         </div>
       </div>
 
-      {/* Lightbox */}
-      {lightbox && (
+      {/* Lightbox — rendered via a portal straight onto <body>, deliberately
+          NOT as a normal descendant here. `fixed` only positions relative to
+          the true viewport if no ancestor has a transform/filter/perspective
+          applied — this page's <main className="page-transition"> was one
+          such ancestor (see index.css for the full story), and something
+          else could become one again in future. A portal makes this
+          structurally immune to that whole bug class regardless of what any
+          ancestor ever does, rather than relying on remembering not to
+          reintroduce it. */}
+      {lightbox && createPortal(
         <div
           className="fixed inset-0 z-50 flex items-center justify-center p-4"
           style={{ background: 'rgba(0,0,0,0.92)' }}
@@ -332,53 +363,63 @@ function Gallery() {
           aria-modal="true"
           aria-label={lightbox.alt}
         >
-          <button
-            className="absolute top-6 right-6 text-white opacity-70 hover:opacity-100"
-            aria-label="Close lightbox"
-          >
-            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-              <path d="M18 6L6 18M6 6l12 12"/>
-            </svg>
-          </button>
+          {/* min-w-0 min-h-0 matters here: flex items default to
+              min-width/min-height "auto" (their natural content size),
+              which silently OVERRIDES max-w-full/max-h — without this, a
+              large raw image (these gallery URLs have no Cloudinary size
+              transform) can overflow the viewport instead of being
+              contained, and since it comes after the close button in DOM
+              order it then visually buries the button under itself. */}
           <img
             src={lightbox.src}
             alt={lightbox.alt}
-            className="max-w-full max-h-[85vh] object-contain"
+            className="min-w-0 min-h-0 max-w-full max-h-[85vh] object-contain"
             onClick={e => e.stopPropagation()}
           />
-        </div>
+          {/* Placed after the image and given a solid backing circle so it
+              stays visibly on top and clickable no matter what's behind it,
+              instead of a bare icon that can blend into a light image. */}
+          <button
+            type="button"
+            onClick={() => setLightbox(null)}
+            className="absolute top-4 right-4 sm:top-6 sm:right-6 flex items-center justify-center w-10 h-10 rounded-full text-white transition-colors"
+            style={{ background: 'rgba(255,255,255,0.12)' }}
+            onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.24)'}
+            onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.12)'}
+            aria-label="Close preview"
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M18 6L6 18M6 6l12 12"/>
+            </svg>
+          </button>
+        </div>,
+        document.body
       )}
     </section>
   )
 }
 
 // ── BRAND STORY SPLIT ────────────────────────────────────────
+// No scroll-triggered reveal here on purpose — it previously used an
+// IntersectionObserver gating opacity via .reveal-left/.reveal-right, and
+// two rounds of retuning its trigger margin (200px, then 60% of viewport
+// height) still weren't reliably early enough. Rather than keep guessing at
+// timing values, the text and image now just render immediately — no
+// mechanism left to mistune.
 function BrandStory() {
-  const leftRef  = useRef(null)
-  const rightRef = useRef(null)
-
-  useEffect(() => {
-    const observer = new IntersectionObserver(([e]) => {
-      if (e.isIntersecting) { e.target.classList.add('visible'); observer.unobserve(e.target) }
-    }, { threshold: 0.15 })
-    if (leftRef.current)  observer.observe(leftRef.current)
-    if (rightRef.current) observer.observe(rightRef.current)
-    return () => observer.disconnect()
-  }, [])
-
   return (
     <section className="py-24 overflow-hidden" style={{ background: 'var(--c-bg)' }}>
       <div className="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 lg:gap-24 items-center">
 
           {/* Image */}
-          <div ref={leftRef} className="reveal-left relative">
+          <div className="relative">
             <div
               className="aspect-[4/5] overflow-hidden"
               style={{ background: 'linear-gradient(135deg, #064E3B, #1a5c44)' }}
             >
               <img
-                src={ASSETS.about.story}
+                src={ASSETS.home.story}
                 alt="Our craftsmanship story"
                 className="w-full h-full object-cover opacity-0 transition-opacity duration-700"
                 onLoad={e => e.target.style.opacity = 1}
@@ -398,7 +439,7 @@ function BrandStory() {
           </div>
 
           {/* Text */}
-          <div ref={rightRef} className="reveal-right">
+          <div>
             <p className="section-eyebrow">Who We Are</p>
             <h2 className="section-title mt-2 mb-6">
               More Than a Brand —<br />
@@ -461,7 +502,7 @@ function Values() {
         </div>
         <div ref={groupRef} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
           {values.map(({ icon, title, desc }, i) => (
-            <div key={title} className={`reveal value-card delay-${(i+1)*100}`} style={{ background: 'white' }}>
+            <div key={title} className={`reveal value-card delay-${(i+1)*100}`} style={{ background: 'var(--c-surface)' }}>
               <div className="text-4xl mb-5" style={{ color: 'var(--c-accent)' }}>{icon}</div>
               <h3 className="font-display text-xl mb-3" style={{ color: 'var(--c-primary)' }}>{title}</h3>
               <p className="text-sm leading-relaxed" style={{ color: 'var(--c-text-muted)' }}>{desc}</p>

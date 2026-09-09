@@ -11,7 +11,7 @@ import { CartProvider } from './context/CartContext'
 import Home    from './pages/Home'
 import About   from './pages/About'
 import Contact from './pages/Contact'
-import { PrivacyPolicy, TermsConditions, NotFound } from './pages/Legal'
+import { PrivacyPolicy, TermsConditions, CookiePolicy, NotFound } from './pages/Legal'
 
 import Login          from './pages/accounts/Login'
 import Register       from './pages/accounts/Register'
@@ -46,6 +46,7 @@ import PaymentHistory             from './pages/payment/PaymentHistory'
 import AdminDashboard             from './pages/admin/AdminDashboard'
 import TestimonialsPage           from './pages/testimonials/TestimonialsPage'
 import TestimonialsAdmin          from './pages/admin/TestimonialsAdmin'
+import { loadAdsense }            from './utils/adsense'
 
 // Scroll to top on route change
 function ScrollReset() {
@@ -79,6 +80,9 @@ function StaffRoute({ children }) {
 }
 
 export default function App() {
+  // No-ops unless a real VITE_ADSENSE_ID is configured.
+  useEffect(() => { loadAdsense() }, [])
+
   return (
     <AuthProvider>
       <CartProvider>
@@ -162,7 +166,7 @@ export default function App() {
           <Route path="/size-guide"      element={<ComingSoon title="Size Guide" />} />
           <Route path="/shipping"        element={<ComingSoon title="Shipping Policy" />} />
           <Route path="/returns"         element={<ComingSoon title="Returns Policy" />} />
-          <Route path="/cookie-policy"   element={<ComingSoon title="Cookie Policy" />} />
+          <Route path="/cookie-policy"   element={<CookiePolicy />} />
           <Route path="/careers"         element={<ComingSoon title="Careers" />} />
           <Route path="/press"           element={<ComingSoon title="Press" />} />
 

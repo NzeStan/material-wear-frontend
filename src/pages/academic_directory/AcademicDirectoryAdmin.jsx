@@ -100,7 +100,7 @@ function StatusBadge({ status }) {
 
 function StatCard({ label, value, sub, accent }) {
   return (
-    <div className="p-5" style={{ border: '1px solid var(--c-border)', background: 'white' }}>
+    <div className="p-5" style={{ border: '1px solid var(--c-border)', background: 'var(--c-surface)' }}>
       <p className="text-xs font-semibold tracking-widest uppercase mb-2" style={{ color: 'var(--c-text-muted)' }}>{label}</p>
       <p className="font-display text-3xl font-bold" style={{ color: accent || 'var(--c-primary)' }}>{value ?? '—'}</p>
       {sub && <p className="text-xs mt-1" style={{ color: 'var(--c-text-muted)' }}>{sub}</p>}
@@ -127,7 +127,7 @@ function Input(props) {
     <input
       {...rest}
       className="w-full py-2.5 px-3 text-sm"
-      style={{ border: `1px solid ${error ? '#DC2626' : 'var(--c-border)'}`, background: 'white', color: 'var(--c-text)', outline: 'none' }}
+      style={{ border: `1px solid ${error ? '#DC2626' : 'var(--c-border)'}`, background: 'var(--c-surface)', color: 'var(--c-text)', outline: 'none' }}
     />
   )
 }
@@ -138,7 +138,7 @@ function Select(props) {
     <select
       {...rest}
       className="w-full py-2.5 px-3 text-sm appearance-none"
-      style={{ border: `1px solid ${error ? '#DC2626' : 'var(--c-border)'}`, background: 'white', color: 'var(--c-text)', outline: 'none' }}
+      style={{ border: `1px solid ${error ? '#DC2626' : 'var(--c-border)'}`, background: 'var(--c-surface)', color: 'var(--c-text)', outline: 'none' }}
     >
       {children}
     </select>
@@ -151,7 +151,7 @@ function TextArea(props) {
     <textarea
       {...rest}
       className="w-full py-2.5 px-3 text-sm resize-none"
-      style={{ border: `1px solid ${error ? '#DC2626' : 'var(--c-border)'}`, background: 'white', color: 'var(--c-text)', outline: 'none' }}
+      style={{ border: `1px solid ${error ? '#DC2626' : 'var(--c-border)'}`, background: 'var(--c-surface)', color: 'var(--c-text)', outline: 'none' }}
     />
   )
 }
@@ -227,7 +227,7 @@ function NotificationsPanel({ onClose }) {
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end" style={{ background: 'rgba(0,0,0,0.4)' }} onClick={onClose}>
-      <div className="h-full w-full max-w-sm flex flex-col shadow-2xl overflow-hidden" style={{ background: 'white' }} onClick={e => e.stopPropagation()}>
+      <div className="h-full w-full max-w-sm flex flex-col shadow-2xl overflow-hidden" style={{ background: 'var(--c-surface)' }} onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between px-5 py-4 border-b" style={{ borderColor: 'var(--c-border)' }}>
           <div>
             <h3 className="font-display text-lg font-semibold" style={{ color: 'var(--c-primary)' }}>Notifications</h3>
@@ -428,7 +428,7 @@ function RepresentativeEditorModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.5)' }} onClick={onClose}>
-      <div className="w-full max-w-3xl max-h-[90vh] overflow-y-auto" style={{ background: 'white' }} onClick={e => e.stopPropagation()}>
+      <div className="w-full max-w-3xl max-h-[90vh] overflow-y-auto" style={{ background: 'var(--c-surface)' }} onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between px-6 py-4 border-b" style={{ borderColor: 'var(--c-border)' }}>
           <div>
             <p className="section-eyebrow mb-1">Representative</p>
@@ -698,11 +698,11 @@ function InstitutionManager({
 
       {creating && renderEditor(`Create ${title.slice(0, -1)}`, submitCreate, 'create')}
       {items.length === 0 ? (
-        <div className="p-8 text-center" style={{ border: '1px solid var(--c-border)', background: 'white', color: 'var(--c-text-muted)' }}>No {title.toLowerCase()} yet.</div>
+        <div className="p-8 text-center" style={{ border: '1px solid var(--c-border)', background: 'var(--c-surface)', color: 'var(--c-text-muted)' }}>No {title.toLowerCase()} yet.</div>
       ) : (
         <div className="flex flex-col gap-3">
           {items.map(item => (
-            <div key={item.id} className="p-4" style={{ border: '1px solid var(--c-border)', background: 'white' }}>
+            <div key={item.id} className="p-4" style={{ border: '1px solid var(--c-border)', background: 'var(--c-surface)' }}>
               {editId === item.id ? (
                 renderEditor(`Save ${title.slice(0, -1)}`, () => submitEdit(item.id), `edit-${item.id}`)
               ) : (
@@ -1162,7 +1162,7 @@ export default function AcademicDirectoryAdmin() {
             <button
               onClick={() => setShowNotifications(true)}
               className="relative flex items-center justify-center w-10 h-10"
-              style={{ border: '1px solid var(--c-border)', background: 'white' }}
+              style={{ border: '1px solid var(--c-border)', background: 'var(--c-surface)' }}
               title="Notifications"
             >
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" style={{ color: 'var(--c-primary)' }}>
@@ -1182,7 +1182,7 @@ export default function AcademicDirectoryAdmin() {
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-8">
           {loadingStats ? (
             Array.from({ length: 6 }).map((_, i) => (
-              <div key={i} className="p-5 animate-pulse" style={{ border: '1px solid var(--c-border)', background: 'white' }}>
+              <div key={i} className="p-5 animate-pulse" style={{ border: '1px solid var(--c-border)', background: 'var(--c-surface)' }}>
                 <div className="h-3 w-16 mb-3 rounded" style={{ background: '#E5E7EB' }} />
                 <div className="h-8 w-10 rounded" style={{ background: '#E5E7EB' }} />
               </div>
@@ -1206,7 +1206,7 @@ export default function AcademicDirectoryAdmin() {
               { label: 'Dept. Presidents', value: stats.dept_presidents_count, color: '#065F46' },
               { label: 'Faculty Presidents', value: stats.faculty_presidents_count, color: '#7C3AED' },
             ].map(({ label, value, color }) => (
-              <div key={label} className="flex items-center gap-4 px-5 py-4" style={{ border: '1px solid var(--c-border)', background: 'white' }}>
+              <div key={label} className="flex items-center gap-4 px-5 py-4" style={{ border: '1px solid var(--c-border)', background: 'var(--c-surface)' }}>
                 <div className="w-1 h-10 flex-shrink-0 rounded" style={{ background: color }} />
                 <div>
                   <p className="text-xs" style={{ color: 'var(--c-text-muted)' }}>{label}</p>
@@ -1273,7 +1273,7 @@ export default function AcademicDirectoryAdmin() {
                   onChange={e => handleSearch(e.target.value)}
                   placeholder="Search name, phone, email…"
                   className="w-full pl-4 pr-4 py-2.5 text-sm"
-                  style={{ border: '1px solid var(--c-border)', background: 'white', color: 'var(--c-text)', outline: 'none' }}
+                  style={{ border: '1px solid var(--c-border)', background: 'var(--c-surface)', color: 'var(--c-text)', outline: 'none' }}
                 />
               </div>
               <Select value={filterStatus} onChange={e => { setFilterStatus(e.target.value); applyFilters({ status: e.target.value }) }}>
@@ -1315,16 +1315,16 @@ export default function AcademicDirectoryAdmin() {
                 </Select>
               </div>
               <div className="lg:col-span-4 flex flex-wrap items-center gap-3">
-                <button onClick={() => handleExport('single')} disabled={exporting === 'single'} className="px-4 py-2 text-sm font-semibold" style={{ border: '1px solid var(--c-border)', background: 'white', color: 'var(--c-text)' }}>
+                <button onClick={() => handleExport('single')} disabled={exporting === 'single'} className="px-4 py-2 text-sm font-semibold" style={{ border: '1px solid var(--c-border)', background: 'var(--c-surface)', color: 'var(--c-text)' }}>
                   {exporting === 'single' ? 'Exporting…' : 'Export PDF'}
                 </button>
-                <button onClick={() => handleExport('bulk_department')} disabled={exporting === 'bulk_department'} className="px-4 py-2 text-sm font-semibold" style={{ border: '1px solid var(--c-border)', background: 'white', color: 'var(--c-text)' }}>
+                <button onClick={() => handleExport('bulk_department')} disabled={exporting === 'bulk_department'} className="px-4 py-2 text-sm font-semibold" style={{ border: '1px solid var(--c-border)', background: 'var(--c-surface)', color: 'var(--c-text)' }}>
                   {exporting === 'bulk_department' ? 'Exporting…' : 'Bulk by Department'}
                 </button>
-                <button onClick={() => handleExport('bulk_faculty')} disabled={exporting === 'bulk_faculty'} className="px-4 py-2 text-sm font-semibold" style={{ border: '1px solid var(--c-border)', background: 'white', color: 'var(--c-text)' }}>
+                <button onClick={() => handleExport('bulk_faculty')} disabled={exporting === 'bulk_faculty'} className="px-4 py-2 text-sm font-semibold" style={{ border: '1px solid var(--c-border)', background: 'var(--c-surface)', color: 'var(--c-text)' }}>
                   {exporting === 'bulk_faculty' ? 'Exporting…' : 'Bulk by Faculty'}
                 </button>
-                <button onClick={() => handleExport('master')} disabled={exporting === 'master'} className="px-4 py-2 text-sm font-semibold" style={{ border: '1px solid var(--c-border)', background: 'white', color: 'var(--c-text)' }}>
+                <button onClick={() => handleExport('master')} disabled={exporting === 'master'} className="px-4 py-2 text-sm font-semibold" style={{ border: '1px solid var(--c-border)', background: 'var(--c-surface)', color: 'var(--c-text)' }}>
                   {exporting === 'master' ? 'Exporting…' : 'Master PDF'}
                 </button>
                 {(filterStatus || filterRole || filterUniversity || filterFaculty || filterDepartment || search) && (
@@ -1353,7 +1353,7 @@ export default function AcademicDirectoryAdmin() {
               </div>
             )}
 
-            <div className="overflow-x-auto" style={{ border: '1px solid var(--c-border)', background: 'white' }}>
+            <div className="overflow-x-auto" style={{ border: '1px solid var(--c-border)', background: 'var(--c-surface)' }}>
               {loadingReps ? (
                 <div className="flex items-center justify-center py-20">
                   <div className="w-8 h-8 border-2 border-t-transparent rounded-full animate-spin" style={{ borderColor: 'var(--c-primary)', borderTopColor: 'transparent' }} />
@@ -1412,7 +1412,7 @@ export default function AcademicDirectoryAdmin() {
                   onClick={() => { const p = page - 1; setPage(p); loadRepresentatives({ pg: p }) }}
                   disabled={!prevUrl}
                   className="flex items-center gap-2 px-4 py-2 text-sm font-medium"
-                  style={{ border: '1px solid var(--c-border)', background: 'white', color: 'var(--c-text)', opacity: prevUrl ? 1 : 0.4, cursor: prevUrl ? 'pointer' : 'not-allowed' }}
+                  style={{ border: '1px solid var(--c-border)', background: 'var(--c-surface)', color: 'var(--c-text)', opacity: prevUrl ? 1 : 0.4, cursor: prevUrl ? 'pointer' : 'not-allowed' }}
                 >
                   Previous
                 </button>
@@ -1421,7 +1421,7 @@ export default function AcademicDirectoryAdmin() {
                   onClick={() => { const p = page + 1; setPage(p); loadRepresentatives({ pg: p }) }}
                   disabled={!nextUrl}
                   className="flex items-center gap-2 px-4 py-2 text-sm font-medium"
-                  style={{ border: '1px solid var(--c-border)', background: 'white', color: 'var(--c-text)', opacity: nextUrl ? 1 : 0.4, cursor: nextUrl ? 'pointer' : 'not-allowed' }}
+                  style={{ border: '1px solid var(--c-border)', background: 'var(--c-surface)', color: 'var(--c-text)', opacity: nextUrl ? 1 : 0.4, cursor: nextUrl ? 'pointer' : 'not-allowed' }}
                 >
                   Next
                 </button>

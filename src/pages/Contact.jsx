@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { APP, CONTACT, SOCIAL } from '../config/constants'
-import { ASSETS } from '../config/assets'
+import { api } from '../services/api'
 import { useScrollRevealGroup } from '../hooks/useScrollAnimation'
 
 function PageHero() {
@@ -25,6 +25,7 @@ function PageHero() {
 function ContactForm() {
   const [form, setForm] = useState({ name: '', email: '', phone: '', subject: '', message: '' })
   const [status, setStatus] = useState('idle') // idle | sending | success | error
+  const [errorMsg, setErrorMsg] = useState('')
   const groupRef = useScrollRevealGroup(100)
 
   const handleChange = (e) => setForm(p => ({ ...p, [e.target.name]: e.target.value }))
@@ -32,9 +33,21 @@ function ContactForm() {
   const handleSubmit = async (e) => {
     e.preventDefault()
     setStatus('sending')
-    // Simulate API call — replace with actual fetch to VITE_API_BASE_URL
-    await new Promise(r => setTimeout(r, 1500))
-    setStatus('success')
+    setErrorMsg('')
+    try {
+      // Backend field is phone_number; the rest map 1:1.
+      await api.post('/contact/message/', {
+        name: form.name.trim(),
+        email: form.email.trim(),
+        phone_number: form.phone.trim(),
+        subject: form.subject.trim(),
+        message: form.message.trim(),
+      })
+      setStatus('success')
+    } catch (err) {
+      setErrorMsg(err.message || 'Could not send your message. Please try again.')
+      setStatus('error')
+    }
   }
 
   return (
@@ -107,8 +120,9 @@ function ContactForm() {
                 {[
                   { href: SOCIAL.instagram, label: 'Instagram' },
                   { href: SOCIAL.facebook,  label: 'Facebook' },
-                  { href: SOCIAL.twitter,   label: 'Twitter' },
+                  { href: SOCIAL.twitter,   label: 'X' },
                   { href: SOCIAL.tiktok,    label: 'TikTok' },
+                  ...(SOCIAL.youtube ? [{ href: SOCIAL.youtube, label: 'YouTube' }] : []),
                 ].map(({ href, label }) => (
                   <a
                     key={label}
@@ -165,6 +179,22 @@ function ContactForm() {
                 <h3 className="font-display text-2xl mb-8" style={{ color: 'var(--c-primary)' }}>
                   Send Us a Message
                 </h3>
+
+                {status === 'error' && errorMsg && (
+                  <div
+                    className="flex items-start gap-3 p-4 mb-6 text-sm"
+                    style={{ background: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.2)', color: '#DC2626' }}
+                    role="alert"
+                  >
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+                      style={{ flexShrink: 0, marginTop: 1 }}>
+                      <circle cx="12" cy="12" r="10"/>
+                      <line x1="12" y1="8" x2="12" y2="12"/>
+                      <line x1="12" y1="16" x2="12.01" y2="16"/>
+                    </svg>
+                    <span>{errorMsg}</span>
+                  </div>
+                )}
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 mb-5">
                   <div>
@@ -290,7 +320,7 @@ export default function Contact() {
     <main className="page-transition">
       <PageHero />
       <ContactForm />
-      <MapSection />
+      {/* <MapSection /> */}
     </main>
   )
 }

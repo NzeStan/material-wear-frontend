@@ -185,7 +185,7 @@ function CreateOrderModal({ onClose, onCreated }) {
   return (
     <Modal onClose={onClose}>
       <div className="w-full max-w-md rounded-2xl overflow-hidden"
-        style={{ background: '#fff', boxShadow: '0 24px 64px rgba(0,0,0,0.25)' }}>
+        style={{ background: 'var(--c-surface)', boxShadow: '0 24px 64px rgba(0,0,0,0.25)' }}>
         <div className="px-6 py-5 flex items-center justify-between"
           style={{ borderBottom: '1px solid var(--c-border)', background: 'var(--c-bg-warm)' }}>
           <div>
@@ -312,7 +312,7 @@ function LinkCreatedModal({ link, onClose }) {
   return (
     <Modal onClose={onClose}>
       <div className="w-full max-w-md rounded-2xl overflow-hidden"
-        style={{ background: '#fff', boxShadow: '0 24px 64px rgba(0,0,0,0.25)' }}>
+        style={{ background: 'var(--c-surface)', boxShadow: '0 24px 64px rgba(0,0,0,0.25)' }}>
 
         {/* Success header */}
         <div className="px-6 pt-8 pb-6 text-center" style={{ background: 'var(--c-primary)' }}>
@@ -405,7 +405,7 @@ function CouponModal({ link, onClose, onGenerated }) {
   return (
     <Modal onClose={onClose}>
       <div className="w-full max-w-sm rounded-2xl overflow-hidden"
-        style={{ background: '#fff', boxShadow: '0 24px 64px rgba(0,0,0,0.25)' }}>
+        style={{ background: 'var(--c-surface)', boxShadow: '0 24px 64px rgba(0,0,0,0.25)' }}>
         <div className="px-6 py-5 flex items-center justify-between"
           style={{ borderBottom: '1px solid var(--c-border)', background: 'var(--c-bg-warm)' }}>
           <h2 className="font-display text-xl" style={{ color: 'var(--c-primary)' }}>Generate Coupons</h2>
@@ -540,7 +540,7 @@ function ManageLinkModal({ slug, onClose, onSaved, onDeleted }) {
   return (
     <Modal onClose={onClose}>
       <div className="w-full max-w-lg rounded-2xl overflow-hidden"
-        style={{ background: '#fff', boxShadow: '0 24px 64px rgba(0,0,0,0.25)' }}>
+        style={{ background: 'var(--c-surface)', boxShadow: '0 24px 64px rgba(0,0,0,0.25)' }}>
         <div className="px-6 py-5 flex items-center justify-between"
           style={{ borderBottom: '1px solid var(--c-border)', background: 'var(--c-bg-warm)' }}>
           <div>
@@ -767,7 +767,7 @@ function OrderLinkCard({ link, isAdmin, onSaved, onDeleted }) {
         className="rounded-2xl overflow-hidden"
         style={{
           border: `1.5px solid ${isExpired ? 'rgba(239,68,68,0.2)' : 'var(--c-border)'}`,
-          background: '#fff',
+          background: 'var(--c-surface)',
           boxShadow: expanded ? '0 8px 40px rgba(0,0,0,0.09)' : '0 2px 8px rgba(0,0,0,0.04)',
           transition: 'box-shadow 0.2s',
         }}
@@ -992,7 +992,7 @@ function OrderLinkCard({ link, isAdmin, onSaved, onDeleted }) {
                             const validation = couponCheck[coupon.id]
                             return (
                               <div key={coupon.id} className="rounded-lg px-3 py-2 text-xs"
-                                style={{ background: '#fff', border: '1px solid var(--c-border)' }}>
+                                style={{ background: 'var(--c-surface)', border: '1px solid var(--c-border)' }}>
                                 <div className="flex items-center justify-between gap-3">
                                   <div>
                                     <span className="font-mono" style={{ color: 'var(--c-text)' }}>{coupon.code}</span>

@@ -7,25 +7,45 @@
  * ============================================================
  */
 
-const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api')
-  .trim()
-  .replace(/\/+$/, '');
+// Mirrors the backend's `if DEBUG: ... else: ...` pattern, but keyed off
+// Vite's own dev/prod flag — the frontend can't read the backend's DEBUG
+// setting directly (it needs an API URL before it can ask the backend
+// anything), so its own dev/prod state is the closest equivalent signal.
+//
+// Dev (`npm run dev`) with no override: talk to the Django dev server
+// directly on localhost. No tunnel needed unless you're specifically testing
+// something that requires external reachability (Paystack webhooks, a
+// second device on the network) — see .env for how to override for that.
+//
+// Production builds get NO guessed fallback: VITE_API_BASE_URL must be set
+// explicitly (via .env.production or the hosting platform's env vars).
+// Silently defaulting a production build to localhost would fail in a
+// confusing way; failing loudly here is easier to diagnose.
+const rawApiBase = import.meta.env.VITE_API_BASE_URL
+  || (import.meta.env.DEV ? 'http://localhost:8000/api' : '');
+
+if (!rawApiBase && import.meta.env.PROD) {
+  console.error(
+    'VITE_API_BASE_URL is not set for this production build — API requests will fail. ' +
+    'Set it in your hosting platform\'s environment variables.'
+  );
+}
+
+const API_BASE_URL = rawApiBase.trim().replace(/\/+$/, '');
 
 export const APP = {
-  name:            import.meta.env.VITE_APP_NAME        || 'Material Wear Limited',
-  tagline:         import.meta.env.VITE_APP_TAGLINE      || 'Crafted for the Distinguished',
-  apiBase:         API_BASE_URL,
+  name:           import.meta.env.VITE_APP_NAME || 'Material Wear Limited',
+  apiBase:        API_BASE_URL,
   // Backend host with no /api suffix — for links to Django admin, docs, etc.
-  // Derived from VITE_API_BASE_URL so there is one place to update when the
-  // backend URL (e.g. an ngrok tunnel) changes.
-  backendOrigin:   API_BASE_URL.replace(/\/api$/, ''),
-  env:             import.meta.env.VITE_APP_ENV          || 'development',
-  enableAnalytics: import.meta.env.VITE_ENABLE_ANALYTICS === 'true',
-  enableDarkMode:  import.meta.env.VITE_ENABLE_DARK_MODE === 'true',
-  adsenseId:       import.meta.env.VITE_ADSENSE_ID       || 'ca-pub-XXXXXXXXXXXXXXXX',
-  gtmId:           import.meta.env.VITE_GTM_ID           || 'GTM-XXXXXXX',
-  isDev:           import.meta.env.DEV,
-  isProd:          import.meta.env.PROD,
+  // Derived from apiBase so there's one place to change the backend URL.
+  backendOrigin:  API_BASE_URL.replace(/\/api$/, ''),
+  // Shows the navbar light/dark toggle — see src/hooks/useTheme.js
+  enableDarkMode: import.meta.env.VITE_ENABLE_DARK_MODE === 'true',
+  // Left empty when unset so src/utils/adsense.js skips loading the script
+  // rather than requesting it with a placeholder client ID.
+  adsenseId:      import.meta.env.VITE_ADSENSE_ID || '',
+  isDev:          import.meta.env.DEV,
+  isProd:         import.meta.env.PROD,
 };
 
 export const CONTACT = {
@@ -39,21 +59,17 @@ export const CONTACT = {
 export const SOCIAL = {
   instagram: import.meta.env.VITE_INSTAGRAM_URL || 'https://instagram.com/materialwearlimited',
   facebook:  import.meta.env.VITE_FACEBOOK_URL  || 'https://facebook.com/materialwearlimited',
-  twitter:   import.meta.env.VITE_TWITTER_URL   || 'https://twitter.com/materialwearlimited',
+  // Internal key/env var name kept as "twitter" — only the visible label/icon
+  // are rebranded to X, to avoid churning the env var name for a cosmetic change.
+  twitter:   import.meta.env.VITE_TWITTER_URL   || 'https://x.com/materialwearlimited',
   tiktok:    import.meta.env.VITE_TIKTOK_URL    || 'https://tiktok.com/@materialwearlimited',
-  pinterest: import.meta.env.VITE_PINTEREST_URL || 'https://pinterest.com/materialwearlimited',
+  // No guessable default — the real channel URL is a channel ID, not a handle.
+  youtube:   import.meta.env.VITE_YOUTUBE_URL   || '',
 };
 
 export const BRAND = {
-  colors: {
-    primary:    '#064E3B',
-    background: '#FFFBEB',
-    accent:     '#F59E0B',
-    text:       '#1F2937',
-  },
-  founded:     import.meta.env.VITE_FOUNDED_YEAR || '2020',
-  currency:    import.meta.env.VITE_CURRENCY     || 'NGN',
-  currencySymbol: '₦',
+  founded:  import.meta.env.VITE_FOUNDED_YEAR || '2020',
+  rcNumber: import.meta.env.VITE_RC_NUMBER    || '',
 };
 
 export const NAVIGATION = [

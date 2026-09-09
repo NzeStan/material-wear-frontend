@@ -222,7 +222,7 @@ function CreateOrderModal({ onClose, onCreated }) {
     >
       <div
         className="w-full max-w-lg rounded-2xl overflow-hidden"
-        style={{ background: '#fff', boxShadow: '0 24px 80px rgba(0,0,0,0.2)' }}
+        style={{ background: 'var(--c-surface)', boxShadow: '0 24px 80px rgba(0,0,0,0.2)' }}
       >
         {/* Header */}
         <div className="px-7 pt-7 pb-5 flex items-center justify-between"
@@ -362,7 +362,7 @@ function LinkCreatedModal({ order, onClose }) {
       style={{ background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(4px)' }}
     >
       <div className="w-full max-w-md rounded-2xl overflow-hidden"
-        style={{ background: '#fff', boxShadow: '0 24px 80px rgba(0,0,0,0.2)' }}>
+        style={{ background: 'var(--c-surface)', boxShadow: '0 24px 80px rgba(0,0,0,0.2)' }}>
 
         {/* Success header */}
         <div className="px-7 pt-8 pb-6 text-center"
@@ -485,7 +485,7 @@ function CouponModal({ order, onClose, onGenerated }) {
       style={{ background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(4px)' }}
       onClick={e => { if (e.target === e.currentTarget) onClose() }}>
       <div className="w-full max-w-sm rounded-2xl overflow-hidden"
-        style={{ background: '#fff', boxShadow: '0 24px 80px rgba(0,0,0,0.2)' }}>
+        style={{ background: 'var(--c-surface)', boxShadow: '0 24px 80px rgba(0,0,0,0.2)' }}>
         <div className="px-6 pt-6 pb-4 flex items-center justify-between"
           style={{ borderBottom: '1px solid var(--c-border)', background: 'var(--c-bg-warm)' }}>
           <h2 className="font-display text-xl" style={{ color: 'var(--c-primary)' }}>Generate Coupons</h2>
@@ -620,7 +620,7 @@ function ManageOrderModal({ slug, onClose, onSaved, onDeleted }) {
       style={{ background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(4px)' }}
       onClick={e => { if (e.target === e.currentTarget) onClose() }}>
       <div className="w-full max-w-lg rounded-2xl overflow-hidden"
-        style={{ background: '#fff', boxShadow: '0 24px 80px rgba(0,0,0,0.2)' }}>
+        style={{ background: 'var(--c-surface)', boxShadow: '0 24px 80px rgba(0,0,0,0.2)' }}>
         <div className="px-7 pt-7 pb-5 flex items-center justify-between"
           style={{ borderBottom: '1px solid var(--c-border)', background: 'var(--c-bg-warm)' }}>
           <div>
@@ -839,7 +839,7 @@ function OrderLinkCard({ order, isAdmin, onRefresh, onDeleted }) {
         className="rounded-2xl overflow-hidden transition-shadow hover:shadow-md"
         style={{
           border: `1.5px solid ${isExpired ? 'rgba(239,68,68,0.2)' : 'var(--c-border)'}`,
-          background: '#fff',
+          background: 'var(--c-surface)',
         }}
       >
         {/* ── Header ── */}
@@ -1074,7 +1074,7 @@ function OrderLinkCard({ order, isAdmin, onRefresh, onDeleted }) {
                     <div className="grid grid-cols-7 gap-2">
                       {analytics.payment_timeline.map(item => (
                         <div key={item.date} className="text-center">
-                          <div className="rounded-lg py-2 text-sm font-semibold" style={{ background: 'white', border: '1px solid var(--c-border)', color: 'var(--c-primary)' }}>
+                          <div className="rounded-lg py-2 text-sm font-semibold" style={{ background: 'var(--c-surface)', border: '1px solid var(--c-border)', color: 'var(--c-primary)' }}>
                             {item.count}
                           </div>
                           <p className="text-[10px] mt-1" style={{ color: 'var(--c-text-muted)' }}>
@@ -1125,7 +1125,7 @@ function OrderLinkCard({ order, isAdmin, onRefresh, onDeleted }) {
                           </div>
                           <button onClick={() => validateCoupon(coupon)} disabled={validation?.loading}
                             className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold"
-                            style={{ background: 'white', color: 'var(--c-primary)', border: '1px solid var(--c-border)' }}>
+                            style={{ background: 'var(--c-surface)', color: 'var(--c-primary)', border: '1px solid var(--c-border)' }}>
                             {validation?.loading ? <SpinnerIcon size={12} /> : <CheckIcon />}
                             <span>Validate</span>
                           </button>
@@ -1363,7 +1363,7 @@ export default function OrganizerDashboard() {
             <div className="text-center mt-10">
               <button onClick={fetchOrders} disabled={loading}
                 className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium"
-                style={{ border: '1.5px solid var(--c-border)', color: 'var(--c-text-muted)', background: '#fff' }}>
+                style={{ border: '1.5px solid var(--c-border)', color: 'var(--c-text-muted)', background: 'var(--c-surface)' }}>
                 {loading ? <SpinnerIcon size={14} /> : <RefreshIcon />}
                 <span>Refresh</span>
               </button>

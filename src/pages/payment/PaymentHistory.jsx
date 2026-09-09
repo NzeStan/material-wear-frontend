@@ -49,7 +49,7 @@ function TransactionCard({ tx }) {
   const [expanded, setExpanded] = useState(false)
 
   return (
-    <div style={{ background: 'white', border: '1px solid var(--c-border)', borderRadius: 8, overflow: 'hidden' }}>
+    <div style={{ background: 'var(--c-surface)', border: '1px solid var(--c-border)', borderRadius: 8, overflow: 'hidden' }}>
       <button
         type="button"
         onClick={() => setExpanded(p => !p)}
@@ -110,7 +110,7 @@ function TransactionCard({ tx }) {
 
 function SkeletonCard() {
   return (
-    <div style={{ background: 'white', border: '1px solid var(--c-border)', borderRadius: 8, overflow: 'hidden' }}>
+    <div style={{ background: 'var(--c-surface)', border: '1px solid var(--c-border)', borderRadius: 8, overflow: 'hidden' }}>
       <div className="flex items-center gap-4 px-5 py-4">
         <div className="flex-1">
           <div className="skeleton h-3.5 w-40 mb-2 rounded" />
@@ -181,7 +181,7 @@ export default function PaymentHistory() {
               className="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5"
               style={{
                 border: '1px solid var(--c-border)', borderRadius: 6,
-                color: 'var(--c-text-muted)', background: 'white',
+                color: 'var(--c-text-muted)', background: 'var(--c-surface)',
               }}
               onMouseEnter={e => e.currentTarget.style.color = 'var(--c-primary)'}
               onMouseLeave={e => e.currentTarget.style.color = 'var(--c-text-muted)'}
@@ -221,7 +221,7 @@ export default function PaymentHistory() {
           transactions.length === 0 ? (
             <div
               className="flex flex-col items-center justify-center py-20 text-center"
-              style={{ background: 'white', border: '1px solid var(--c-border)', borderRadius: 8 }}
+              style={{ background: 'var(--c-surface)', border: '1px solid var(--c-border)', borderRadius: 8 }}
             >
               <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1"
                 style={{ color: '#E5E7EB', marginBottom: 12 }}>
@@ -256,7 +256,7 @@ export default function PaymentHistory() {
                     onClick={() => setPage(p => Math.max(1, p - 1))}
                     disabled={!prevUrl}
                     className="px-4 py-2 text-sm font-medium"
-                    style={{ border: '1px solid var(--c-border)', background: 'white', color: 'var(--c-text)', opacity: prevUrl ? 1 : 0.45, cursor: prevUrl ? 'pointer' : 'not-allowed' }}
+                    style={{ border: '1px solid var(--c-border)', background: 'var(--c-surface)', color: 'var(--c-text)', opacity: prevUrl ? 1 : 0.45, cursor: prevUrl ? 'pointer' : 'not-allowed' }}
                   >
                     Previous
                   </button>
@@ -265,7 +265,7 @@ export default function PaymentHistory() {
                     onClick={() => setPage(p => p + 1)}
                     disabled={!nextUrl}
                     className="px-4 py-2 text-sm font-medium"
-                    style={{ border: '1px solid var(--c-border)', background: 'white', color: 'var(--c-text)', opacity: nextUrl ? 1 : 0.45, cursor: nextUrl ? 'pointer' : 'not-allowed' }}
+                    style={{ border: '1px solid var(--c-border)', background: 'var(--c-surface)', color: 'var(--c-text)', opacity: nextUrl ? 1 : 0.45, cursor: nextUrl ? 'pointer' : 'not-allowed' }}
                   >
                     Next
                   </button>

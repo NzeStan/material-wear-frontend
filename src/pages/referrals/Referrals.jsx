@@ -116,7 +116,7 @@ function StepCard({ number, title, desc, delay }) {
   return (
     <div className={`reveal delay-${delay} relative`}>
       <div className="flex flex-col h-full p-8"
-        style={{ background: 'white', border: '1px solid rgba(6,78,59,0.08)' }}>
+        style={{ background: 'var(--c-surface)', border: '1px solid rgba(6,78,59,0.08)' }}>
         <div
           className="w-10 h-10 flex items-center justify-center font-display text-lg font-medium text-white mb-5 flex-shrink-0"
           style={{ background: 'var(--c-primary)' }}
@@ -151,7 +151,7 @@ function MediaCard({ item }) {
 
   return (
     <div className="reveal group"
-      style={{ background: 'white', border: '1px solid #F3F4F6', overflow: 'hidden' }}>
+      style={{ background: 'var(--c-surface)', border: '1px solid #F3F4F6', overflow: 'hidden' }}>
 
       {/* Media preview */}
       <div className="relative aspect-video overflow-hidden"
@@ -457,7 +457,7 @@ function AdminProfileModal({ profileId, onClose, onSaved, onDeleted }) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.6)' }} onClick={onClose}>
-      <div className="w-full max-w-2xl p-6" style={{ background: 'white' }} onClick={e => e.stopPropagation()}>
+      <div className="w-full max-w-2xl p-6" style={{ background: 'var(--c-surface)' }} onClick={e => e.stopPropagation()}>
         <div className="flex items-start justify-between gap-4 mb-5">
           <div>
             <h3 className="font-display text-2xl" style={{ color: 'var(--c-primary)' }}>Manage Referrer</h3>
@@ -600,7 +600,7 @@ function AdminMediaModal({ mediaId, onClose, onSaved, onDeleted }) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.6)' }} onClick={onClose}>
-      <div className="w-full max-w-2xl p-6" style={{ background: 'white' }} onClick={e => e.stopPropagation()}>
+      <div className="w-full max-w-2xl p-6" style={{ background: 'var(--c-surface)' }} onClick={e => e.stopPropagation()}>
         <div className="flex items-start justify-between gap-4 mb-5">
           <div>
             <h3 className="font-display text-2xl" style={{ color: 'var(--c-primary)' }}>{isCreate ? 'New Media' : 'Manage Media'}</h3>
@@ -737,7 +737,7 @@ function AdminReferralPanel({ media, onMediaUpdated }) {
         </div>
 
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
-          <div style={{ background: 'white', border: '1px solid #E5E7EB' }} className="p-6">
+          <div style={{ background: 'var(--c-surface)', border: '1px solid #E5E7EB' }} className="p-6">
             <div className="flex items-center justify-between mb-5">
               <h3 className="font-display text-2xl" style={{ color: 'var(--c-primary)' }}>Referrer Profiles</h3>
               <span className="text-xs uppercase tracking-widest" style={{ color: 'var(--c-text-muted)' }}>{profiles.length} total</span>
@@ -764,7 +764,7 @@ function AdminReferralPanel({ media, onMediaUpdated }) {
             )}
           </div>
 
-          <div style={{ background: 'white', border: '1px solid #E5E7EB' }} className="p-6">
+          <div style={{ background: 'var(--c-surface)', border: '1px solid #E5E7EB' }} className="p-6">
             <div className="flex items-center justify-between mb-5">
               <h3 className="font-display text-2xl" style={{ color: 'var(--c-primary)' }}>Promotional Media</h3>
               <span className="text-xs uppercase tracking-widest" style={{ color: 'var(--c-text-muted)' }}>{media.length} total</span>
@@ -1307,7 +1307,7 @@ function Dashboard({ profile, sharePayload, media, isAdmin, onProfileUpdated, on
 
             {/* WhatsApp */}
             <div className="reveal delay-100 flex flex-col items-center text-center p-8"
-              style={{ background: 'white', border: '1px solid rgba(6,78,59,0.08)' }}>
+              style={{ background: 'var(--c-surface)', border: '1px solid rgba(6,78,59,0.08)' }}>
               <div className="w-14 h-14 rounded-full flex items-center justify-center mb-5"
                 style={{ background: '#25D366', color: 'white' }}>
                 <WhatsAppIcon />
@@ -1333,7 +1333,7 @@ function Dashboard({ profile, sharePayload, media, isAdmin, onProfileUpdated, on
 
             {/* Copy code */}
             <div className="reveal delay-200 flex flex-col items-center text-center p-8"
-              style={{ background: 'white', border: '1px solid rgba(6,78,59,0.08)' }}>
+              style={{ background: 'var(--c-surface)', border: '1px solid rgba(6,78,59,0.08)' }}>
               <div className="w-14 h-14 flex items-center justify-center mb-5 font-display text-xl font-bold text-white"
                 style={{ background: 'var(--c-primary)' }}>
                 {referralCode.slice(0, 2)}
@@ -1361,7 +1361,7 @@ function Dashboard({ profile, sharePayload, media, isAdmin, onProfileUpdated, on
 
             {/* Copy full message */}
             <div className="reveal delay-300 flex flex-col items-center text-center p-8"
-              style={{ background: 'white', border: '1px solid rgba(6,78,59,0.08)' }}>
+              style={{ background: 'var(--c-surface)', border: '1px solid rgba(6,78,59,0.08)' }}>
               <div className="w-14 h-14 flex items-center justify-center mb-5"
                 style={{ background: 'rgba(245,158,11,0.12)', color: 'var(--c-accent-dark)' }}>
                 <ShareIcon />
@@ -1392,7 +1392,7 @@ function Dashboard({ profile, sharePayload, media, isAdmin, onProfileUpdated, on
                 Your share message preview
               </p>
               <div className="relative p-6 text-sm leading-relaxed whitespace-pre-line"
-                style={{ background: 'white', border: '1px solid #E5E7EB', color: 'var(--c-text)' }}>
+                style={{ background: 'var(--c-surface)', border: '1px solid #E5E7EB', color: 'var(--c-text)' }}>
                 {shareMessage}
                 <button
                   onClick={() => copyMsg(shareMessage)}
@@ -1457,7 +1457,7 @@ function Dashboard({ profile, sharePayload, media, isAdmin, onProfileUpdated, on
         <section className="py-16" style={{ background: 'var(--c-bg)' }}>
           <div className="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
             <div className="reveal text-center py-16"
-              style={{ background: 'white', border: '1px solid #F3F4F6' }}>
+              style={{ background: 'var(--c-surface)', border: '1px solid #F3F4F6' }}>
               <div className="w-14 h-14 mx-auto mb-5 flex items-center justify-center"
                 style={{ background: 'rgba(6,78,59,0.06)', color: 'var(--c-text-light)' }}>
                 <ImageIcon />
@@ -1533,7 +1533,7 @@ function ProfileReadView({ profile }) {
           <p className="form-label">{label}</p>
           <div className="px-4 py-3.5 text-sm"
             style={{
-              background: 'white',
+              background: 'var(--c-surface)',
               border: '1.5px solid #E5E7EB',
               color: 'var(--c-text)',
               fontFamily: monospace ? 'monospace' : undefined,

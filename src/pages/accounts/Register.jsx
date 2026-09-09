@@ -158,7 +158,7 @@ export default function Register() {
       type="button" onClick={onClick}
       disabled={!!busy}
       className="flex items-center justify-center gap-2.5 px-4 py-3 text-xs font-medium tracking-wide border transition-all duration-200 w-full"
-      style={{ border: '1.5px solid #D1D5DB', background: 'white', color: 'var(--c-text)', opacity: busy ? 0.7 : 1 }}
+      style={{ border: '1.5px solid #D1D5DB', background: 'var(--c-surface)', color: 'var(--c-text)', opacity: busy ? 0.7 : 1 }}
       onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--c-primary)'; e.currentTarget.style.boxShadow = 'var(--shadow-sm)' }}
       onMouseLeave={e => { e.currentTarget.style.borderColor = '#D1D5DB'; e.currentTarget.style.boxShadow = 'none' }}
     >

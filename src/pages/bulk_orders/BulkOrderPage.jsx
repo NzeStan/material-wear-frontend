@@ -444,7 +444,7 @@ export default function BulkOrderPage() {
           <div className="lg:col-span-3">
             <div
               className="rounded-2xl overflow-hidden"
-              style={{ border: '1px solid var(--c-border)', background: '#fff', boxShadow: '0 4px 32px rgba(0,0,0,0.06)' }}
+              style={{ border: '1px solid var(--c-border)', background: 'var(--c-surface)', boxShadow: '0 4px 32px rgba(0,0,0,0.06)' }}
             >
               {/* Card header */}
               <div className="px-7 pt-7 pb-5" style={{ borderBottom: '1px solid var(--c-border)' }}>
@@ -654,7 +654,7 @@ export default function BulkOrderPage() {
             </div>
 
             {/* Secure payment */}
-            <div className="rounded-2xl p-5 flex items-start gap-3" style={{ border: '1px solid var(--c-border)', background: '#fff' }}>
+            <div className="rounded-2xl p-5 flex items-start gap-3" style={{ border: '1px solid var(--c-border)', background: 'var(--c-surface)' }}>
               <div className="flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center"
                 style={{ background: 'var(--c-bg-warm)', color: 'var(--c-primary)' }}>
                 <ShieldIcon />
@@ -668,7 +668,7 @@ export default function BulkOrderPage() {
             </div>
 
             {/* Deadline */}
-            <div className="rounded-2xl p-5" style={{ border: '1px solid var(--c-border)', background: '#fff' }}>
+            <div className="rounded-2xl p-5" style={{ border: '1px solid var(--c-border)', background: 'var(--c-surface)' }}>
               <div className="flex items-center gap-2 mb-3" style={{ color: 'var(--c-primary)' }}>
                 <ClockIcon size={16} />
                 <h3 className="text-sm font-semibold">Payment Deadline</h3>
@@ -688,7 +688,7 @@ export default function BulkOrderPage() {
 
             {/* Stats */}
             {stats && (
-              <div className="rounded-2xl p-5" style={{ border: '1px solid var(--c-border)', background: '#fff' }}>
+              <div className="rounded-2xl p-5" style={{ border: '1px solid var(--c-border)', background: 'var(--c-surface)' }}>
                 <div className="flex items-center gap-2 mb-3" style={{ color: 'var(--c-primary)' }}>
                   <UsersIcon />
                   <h3 className="text-sm font-semibold">Order Progress</h3>
@@ -711,7 +711,7 @@ export default function BulkOrderPage() {
             )}
 
             {/* Help */}
-            <div className="rounded-2xl p-5" style={{ border: '1px solid var(--c-border)', background: '#fff' }}>
+            <div className="rounded-2xl p-5" style={{ border: '1px solid var(--c-border)', background: 'var(--c-surface)' }}>
               <p className="text-xs" style={{ color: 'var(--c-text-muted)' }}>
                 Need help with your order? Contact us at{' '}
                 <a href={`mailto:${CONTACT.email}`} className="underline" style={{ color: 'var(--c-primary)' }}>
@@ -766,7 +766,7 @@ function PaymentView({ order, paying, error, onPay }) {
         {/* Order summary card */}
         <div
           className="rounded-2xl overflow-hidden mb-5"
-          style={{ border: '1px solid var(--c-border)', background: '#fff', boxShadow: '0 2px 16px rgba(0,0,0,0.05)' }}
+          style={{ border: '1px solid var(--c-border)', background: 'var(--c-surface)', boxShadow: '0 2px 16px rgba(0,0,0,0.05)' }}
         >
           <div className="px-6 py-4 flex items-center gap-2" style={{ borderBottom: '1px solid var(--c-border)', background: 'var(--c-bg-warm)' }}>
             <ReceiptIcon />

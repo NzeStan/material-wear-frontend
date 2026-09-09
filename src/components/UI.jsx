@@ -61,7 +61,11 @@ export function CookieConsent() {
       <div className="flex-1 min-w-0">
         <p className="text-sm font-medium mb-1">🍪 We use cookies</p>
         <p className="text-xs opacity-70 leading-relaxed">
-          We use cookies to improve your experience and for analytics. By continuing, you agree to our{' '}
+          We use cookies to keep you signed in and to show relevant ads. By continuing, you agree to our{' '}
+          <a href="/cookie-policy" className="underline hover:no-underline" style={{ color: 'var(--c-accent-light)' }}>
+            Cookie Policy
+          </a>{' '}
+          and{' '}
           <a href="/privacy-policy" className="underline hover:no-underline" style={{ color: 'var(--c-accent-light)' }}>
             Privacy Policy
           </a>.

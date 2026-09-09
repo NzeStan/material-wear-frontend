@@ -1,21 +1,22 @@
 import { useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
-import { APP } from '../config/constants'
+import { APP, BRAND } from '../config/constants'
 import { ASSETS } from '../config/assets'
 import { useScrollRevealGroup } from '../hooks/useScrollAnimation'
 
 function PageHero() {
   return (
     <section className="page-hero">
-      <div
-        className="page-hero-bg"
-        style={{ backgroundImage: `url(${ASSETS.about.hero})` }}
-        aria-hidden="true"
-      />
-      {/* Fallback gradient */}
+      {/* Fallback gradient — sits behind the image div below, so it only
+          shows if the image fails to load, instead of covering it. */}
       <div
         className="absolute inset-0"
         style={{ background: 'linear-gradient(135deg, #064E3B 0%, #0a5c45 100%)' }}
+        aria-hidden="true"
+      />
+      <div
+        className="page-hero-bg"
+        style={{ backgroundImage: `url(${ASSETS.about.hero})` }}
         aria-hidden="true"
       />
       <div className="relative z-10 container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
@@ -75,7 +76,7 @@ function MissionSection() {
               className="absolute -bottom-6 -right-6 p-8 hidden lg:block"
               style={{ background: 'var(--c-primary)' }}
             >
-              <p className="font-display text-5xl font-light text-white">2020</p>
+              <p className="font-display text-5xl font-light text-white">{BRAND.founded}</p>
               <p className="text-xs tracking-widest uppercase mt-1" style={{ color: 'var(--c-accent-light)' }}>
                 Est.
               </p>
@@ -287,8 +288,8 @@ export default function About() {
     <main className="page-transition">
       <PageHero />
       <MissionSection />
-      <Timeline />
-      <TeamSection />
+      {/* <Timeline /> */}
+      {/* <TeamSection /> */}
       <CraftsmanshipSection />
       <CTASection />
     </main>

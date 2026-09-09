@@ -287,7 +287,7 @@ export default function ImagePaymentVerify() {
 
         {/* Receipt card */}
         <div className="rounded-2xl overflow-hidden mb-6"
-          style={{ border: '1px solid var(--c-border)', background: '#fff', boxShadow: '0 4px 24px rgba(0,0,0,0.07)' }}>
+          style={{ border: '1px solid var(--c-border)', background: 'var(--c-surface)', boxShadow: '0 4px 24px rgba(0,0,0,0.07)' }}>
 
           {/* Card header */}
           <div className="px-6 py-4 flex items-center gap-3"

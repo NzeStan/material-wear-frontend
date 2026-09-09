@@ -96,7 +96,7 @@ function FieldInput({ field, value, onChange, error }) {
 
 function FieldGroup({ title, icon, fields, values, onChange, errors }) {
   return (
-    <div className="p-6" style={{ border: '1px solid var(--c-border)', background: 'white' }}>
+    <div className="p-6" style={{ border: '1px solid var(--c-border)', background: 'var(--c-surface)' }}>
       <div className="flex items-center gap-2 mb-5">
         <div
           className="w-8 h-8 flex items-center justify-center"
@@ -130,7 +130,7 @@ function MeasurementCard({ record, onOpen, onDelete }) {
   return (
     <div
       className="transition-shadow duration-200"
-      style={{ border: '1px solid var(--c-border)', background: 'white' }}
+      style={{ border: '1px solid var(--c-border)', background: 'var(--c-surface)' }}
     >
       {/* Header */}
       <button
@@ -253,7 +253,7 @@ function DetailModal({ id, onClose, onEdit }) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.5)' }} onClick={onClose}>
-      <div className="w-full max-w-3xl max-h-[90vh] overflow-y-auto p-6 shadow-xl" style={{ background: 'white' }} onClick={e => e.stopPropagation()}>
+      <div className="w-full max-w-3xl max-h-[90vh] overflow-y-auto p-6 shadow-xl" style={{ background: 'var(--c-surface)' }} onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between mb-5">
           <div>
             <p className="section-eyebrow mb-1">Measurement Detail</p>
@@ -329,7 +329,7 @@ function DetailModal({ id, onClose, onEdit }) {
 function DeleteModal({ onConfirm, onCancel, loading }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.5)' }}>
-      <div className="w-full max-w-sm p-6 shadow-xl" style={{ background: 'white' }}>
+      <div className="w-full max-w-sm p-6 shadow-xl" style={{ background: 'var(--c-surface)' }}>
         <div className="w-12 h-12 flex items-center justify-center mx-auto mb-4" style={{ background: '#FEF2F2' }}>
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#DC2626" strokeWidth="1.5">
             <polyline points="3 6 5 6 21 6"/>
@@ -772,7 +772,7 @@ export default function MeasurementPage() {
                     setPage(1)
                   }}
                   className="py-2 px-3 text-sm"
-                  style={{ border: '1px solid var(--c-border)', background: 'white', color: 'var(--c-text)', outline: 'none' }}
+                  style={{ border: '1px solid var(--c-border)', background: 'var(--c-surface)', color: 'var(--c-text)', outline: 'none' }}
                 >
                   {SORT_OPTIONS.map((option) => (
                     <option key={option.value} value={option.value}>{option.label}</option>
@@ -798,7 +798,7 @@ export default function MeasurementPage() {
                   onClick={() => setPage((prev) => Math.max(1, prev - 1))}
                   disabled={!prevUrl}
                   className="px-4 py-2 text-sm font-medium"
-                  style={{ border: '1px solid var(--c-border)', background: 'white', color: 'var(--c-text)', opacity: prevUrl ? 1 : 0.45, cursor: prevUrl ? 'pointer' : 'not-allowed' }}
+                  style={{ border: '1px solid var(--c-border)', background: 'var(--c-surface)', color: 'var(--c-text)', opacity: prevUrl ? 1 : 0.45, cursor: prevUrl ? 'pointer' : 'not-allowed' }}
                 >
                   Previous
                 </button>
@@ -807,7 +807,7 @@ export default function MeasurementPage() {
                   onClick={() => setPage((prev) => prev + 1)}
                   disabled={!nextUrl}
                   className="px-4 py-2 text-sm font-medium"
-                  style={{ border: '1px solid var(--c-border)', background: 'white', color: 'var(--c-text)', opacity: nextUrl ? 1 : 0.45, cursor: nextUrl ? 'pointer' : 'not-allowed' }}
+                  style={{ border: '1px solid var(--c-border)', background: 'var(--c-surface)', color: 'var(--c-text)', opacity: nextUrl ? 1 : 0.45, cursor: nextUrl ? 'pointer' : 'not-allowed' }}
                 >
                   Next
                 </button>
