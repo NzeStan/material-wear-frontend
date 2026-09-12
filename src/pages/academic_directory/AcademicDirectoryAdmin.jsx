@@ -1370,6 +1370,7 @@ export default function AcademicDirectoryAdmin() {
                   </p>
                 </div>
               ) : (
+                <div className="overflow-x-auto">
                 <table className="w-full text-left">
                   <thead>
                     <tr style={{ background: 'var(--c-bg-warm)', borderBottom: '1px solid var(--c-border)' }}>
@@ -1403,6 +1404,7 @@ export default function AcademicDirectoryAdmin() {
                     ))}
                   </tbody>
                 </table>
+                </div>
               )}
             </div>
 

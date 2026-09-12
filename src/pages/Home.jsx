@@ -39,7 +39,10 @@ function Hero() {
   const current = slides[slide]
 
   return (
-    <section className="relative h-screen min-h-[600px] max-h-[960px] overflow-hidden flex items-center" aria-label="Hero">
+    <section
+      className="relative h-[75dvh] sm:h-[100dvh] min-h-[480px] sm:min-h-[600px] max-h-[960px] overflow-hidden flex items-center"
+      aria-label="Hero"
+    >
 
       {/* Background */}
       <div ref={parallaxRef} className="absolute inset-0 hero-bg will-change-transform">
