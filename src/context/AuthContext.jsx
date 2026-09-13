@@ -147,6 +147,9 @@ export function AuthProvider({ children }) {
   const confirmPasswordReset = async ({ uid, token, new_password1, new_password2 }) =>
     api.post('/auth/social/password/reset/confirm/', { uid, token, new_password1, new_password2 })
 
+  const verifyEmail = async (key) =>
+    api.post('/auth/social/registration/verify-email/', { key })
+
   // ── Context value ─────────────────────────────────────────────────────────────
   const value = {
     user,
@@ -165,6 +168,7 @@ export function AuthProvider({ children }) {
     changePassword,
     requestPasswordReset,
     confirmPasswordReset,
+    verifyEmail,
     refreshUser: checkAuth,
   }
 

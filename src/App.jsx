@@ -17,6 +17,7 @@ import Login          from './pages/accounts/Login'
 import Register       from './pages/accounts/Register'
 import ForgotPassword from './pages/accounts/ForgotPassword'
 import ResetPassword  from './pages/accounts/ResetPassword'
+import VerifyEmail    from './pages/accounts/VerifyEmail'
 import Profile        from './pages/accounts/Profile'
 import Referrals      from './pages/referrals/Referrals'
 import BulkOrderPage       from './pages/bulk_orders/BulkOrderPage'
@@ -109,6 +110,7 @@ export default function App() {
           <Route path="/register" element={<GuestRoute><Register /></GuestRoute>} />
           <Route path="/forgot-password" element={<GuestRoute><ForgotPassword /></GuestRoute>} />
           <Route path="/reset-password/:uid/:token" element={<ResetPassword />} />
+          <Route path="/verify-email/:key" element={<VerifyEmail />} />
           <Route path="/profile"  element={<Profile />} />
 
           {/* ── Referrals ────────────────────────────────────── */}
