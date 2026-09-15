@@ -129,9 +129,24 @@ const TABS = [
   { key: 'church',    label: 'Church Items', urlType: 'church' },
 ]
 
-function normalizeListResponse(data) {
-  if (Array.isArray(data)) return data
-  return data?.results || []
+// Keeps count/next/previous alongside results — normalizeListResponse used
+// to throw these away, keeping only the current page's array. That's what
+// made "Showing 4 of 37" (from the separate /products/all/ featured-preview
+// endpoint) drift out of sync with the grid, which was silently stuck on
+// page 1 (DRF's default PAGE_SIZE=20) of a *different*, fully-paginated
+// endpoint, with no way to reach the rest.
+function normalizePaginated(data) {
+  if (Array.isArray(data)) return { results: data, count: data.length }
+  return {
+    results: data?.results || [],
+    count: typeof data?.count === 'number' ? data.count : (data?.results || []).length,
+  }
+}
+
+const TYPE_ENDPOINTS = {
+  nysc_kit: { dataKey: 'nysc_kits', path: 'nysc-kits' },
+  nysc_tour: { dataKey: 'nysc_tours', path: 'nysc-tours' },
+  church: { dataKey: 'churches', path: 'churches' },
 }
 
 // ── main page ─────────────────────────────────────────────────────────────────
@@ -140,10 +155,16 @@ export default function CollectionsPage() {
   const [data, setData] = useState(null)
   const [categories, setCategories] = useState([])
   const [currentCategory, setCurrentCategory] = useState(null)
-  const [typedData, setTypedData] = useState({ nysc_kits: [], nysc_tours: [], churches: [] })
+  const [typedData, setTypedData] = useState({
+    nysc_kits: { results: [], count: 0 },
+    nysc_tours: { results: [], count: 0 },
+    churches: { results: [], count: 0 },
+  })
   const [loading, setLoading] = useState(true)
+  const [pageLoading, setPageLoading] = useState(false)
   const [error, setError] = useState(null)
   const [activeTab, setActiveTab] = useState('all')
+  const [page, setPage] = useState(1)
   const [searchParams, setSearchParams] = useSearchParams()
 
   useEffect(() => {
@@ -165,6 +186,14 @@ export default function CollectionsPage() {
       fetchProducts(nextCategory)
     }
   }, [searchParams]) // eslint-disable-line
+
+  // Switching tabs doesn't refetch (each type's page-1 data is already
+  // loaded), but it does need to drop back to page 1 of whichever type
+  // becomes active — otherwise flipping from a NYSC Tours page 2 to Church
+  // Items would silently show church items' (nonexistent) page 2.
+  useEffect(() => {
+    setPage(1)
+  }, [activeTab, currentCategory])
 
   async function fetchProducts(categorySlug = searchParams.get('category')) {
     setLoading(true)
@@ -190,14 +219,37 @@ export default function CollectionsPage() {
       setCategories(Array.isArray(categoriesData) ? categoriesData : categoriesData?.results || allData?.categories || [])
       setCurrentCategory(categoryData || allData?.current_category || null)
       setTypedData({
-        nysc_kits: normalizeListResponse(kitsData),
-        nysc_tours: normalizeListResponse(toursData),
-        churches: normalizeListResponse(churchesData),
+        nysc_kits: normalizePaginated(kitsData),
+        nysc_tours: normalizePaginated(toursData),
+        churches: normalizePaginated(churchesData),
       })
+      setPage(1)
     } catch (e) {
       setError(e?.data?.detail || e?.message || 'Failed to load products')
     } finally {
       setLoading(false)
+    }
+  }
+
+  // Targeted re-fetch of just the active tab's type at a given page — used
+  // by the Prev/Next buttons below. Only meaningful for a single-type tab
+  // (not "all", not category-filtered — that path still goes through the
+  // separate /products/all/ featured-preview endpoint, which doesn't
+  // support real pagination on the backend).
+  async function fetchTypePage(typeKey, pageNum) {
+    const endpoint = TYPE_ENDPOINTS[typeKey]
+    if (!endpoint) return
+    setPageLoading(true)
+    setError(null)
+    try {
+      const pageData = await api.get(`/products/${endpoint.path}/?page=${pageNum}`)
+      setTypedData(prev => ({ ...prev, [endpoint.dataKey]: normalizePaginated(pageData) }))
+      setPage(pageNum)
+      window.scrollTo({ top: 0, behavior: 'smooth' })
+    } catch (e) {
+      setError(e?.data?.detail || e?.message || 'Failed to load page')
+    } finally {
+      setPageLoading(false)
     }
   }
 
@@ -217,14 +269,14 @@ export default function CollectionsPage() {
   const displayed = useMemo(() => {
     const source = activeTab === 'all'
       ? {
-          nysc_kits: currentCategory ? data?.nysc_kits || [] : typedData.nysc_kits,
-          nysc_tours: currentCategory ? data?.nysc_tours || [] : typedData.nysc_tours,
-          churches: currentCategory ? data?.churches || [] : typedData.churches,
+          nysc_kits: currentCategory ? data?.nysc_kits || [] : typedData.nysc_kits.results,
+          nysc_tours: currentCategory ? data?.nysc_tours || [] : typedData.nysc_tours.results,
+          churches: currentCategory ? data?.churches || [] : typedData.churches.results,
         }
       : {
-          nysc_kits: activeTab === 'nysc_kit' ? (currentCategory ? data?.nysc_kits || [] : typedData.nysc_kits) : [],
-          nysc_tours: activeTab === 'nysc_tour' ? (currentCategory ? data?.nysc_tours || [] : typedData.nysc_tours) : [],
-          churches: activeTab === 'church' ? (currentCategory ? data?.churches || [] : typedData.churches) : [],
+          nysc_kits: activeTab === 'nysc_kit' ? (currentCategory ? data?.nysc_kits || [] : typedData.nysc_kits.results) : [],
+          nysc_tours: activeTab === 'nysc_tour' ? (currentCategory ? data?.nysc_tours || [] : typedData.nysc_tours.results) : [],
+          churches: activeTab === 'church' ? (currentCategory ? data?.churches || [] : typedData.churches.results) : [],
         }
 
     const items = []
@@ -235,10 +287,19 @@ export default function CollectionsPage() {
   }, [activeTab, currentCategory, data, typedData])
 
   const counts = {
-    nysc_kit: currentCategory ? (data?.nysc_kits || []).length : typedData.nysc_kits.length,
-    nysc_tour: currentCategory ? (data?.nysc_tours || []).length : typedData.nysc_tours.length,
-    church: currentCategory ? (data?.churches || []).length : typedData.churches.length,
+    nysc_kit: currentCategory ? (data?.nysc_kits || []).length : typedData.nysc_kits.count,
+    nysc_tour: currentCategory ? (data?.nysc_tours || []).length : typedData.nysc_tours.count,
+    church: currentCategory ? (data?.churches || []).length : typedData.churches.count,
   }
+
+  // Pagination only applies to a single-type tab with no category filter —
+  // that's the only combination backed by a real, page-able endpoint (the
+  // "all" view and category-filtered views come from the separate
+  // /products/all/ featured-preview endpoint, which the backend caps with
+  // its own [:limit] slice and no next/previous cursors).
+  const paginatedType = !currentCategory && activeTab !== 'all' ? activeTab : null
+  const activeTypeData = paginatedType ? typedData[TYPE_ENDPOINTS[paginatedType].dataKey] : null
+  const totalPages = activeTypeData ? Math.max(1, Math.ceil(activeTypeData.count / 20)) : 1
 
   return (
     <main className="flex-1 py-10 px-4" style={{ background: 'var(--c-bg)', minHeight: '80vh' }}>
@@ -336,7 +397,12 @@ export default function CollectionsPage() {
           </div>
         </div>
 
-        {data?.pagination && (
+        {/* Only shown in the combined "All Products" view — this reflects
+            the separate featured-preview endpoint's own real numbers, so it
+            stays out of the way once a single-type tab (with its own,
+            actually-paginated "Showing X-Y of Z" caption below) is active,
+            instead of showing two conflicting counts on screen at once. */}
+        {activeTab === 'all' && data?.pagination && (
           <div
             className="grid md:grid-cols-3 gap-3 mb-8"
             style={{ color: 'var(--c-text-muted)' }}
@@ -359,6 +425,12 @@ export default function CollectionsPage() {
               </div>
             ))}
           </div>
+        )}
+
+        {paginatedType && activeTypeData && activeTypeData.count > 0 && (
+          <p className="text-xs mb-4" style={{ color: 'var(--c-text-muted)' }}>
+            Showing {(page - 1) * 20 + 1}–{Math.min(page * 20, activeTypeData.count)} of {activeTypeData.count}
+          </p>
         )}
 
         {/* Error */}
@@ -397,6 +469,34 @@ export default function CollectionsPage() {
             {displayed.map(({ product, urlType }) => (
               <ProductCard key={`${urlType}-${product.id}`} product={product} urlType={urlType} />
             ))}
+          </div>
+        )}
+
+        {/* Pagination — only meaningful for a single-type tab (kits/tours/
+            churches) with no category filter; "All Products" and
+            category-filtered views come from the separate, non-paginated
+            featured-preview endpoint. */}
+        {paginatedType && activeTypeData && totalPages > 1 && (
+          <div className="flex items-center justify-center gap-4 mt-8">
+            <button
+              onClick={() => fetchTypePage(paginatedType, page - 1)}
+              disabled={page <= 1 || pageLoading}
+              className="px-4 py-2 text-sm font-semibold rounded-lg disabled:opacity-40 disabled:cursor-not-allowed"
+              style={{ border: '1px solid var(--c-border)', color: 'var(--c-text)' }}
+            >
+              ← Prev
+            </button>
+            <span className="text-sm" style={{ color: 'var(--c-text-muted)' }}>
+              Page {page} of {totalPages}
+            </span>
+            <button
+              onClick={() => fetchTypePage(paginatedType, page + 1)}
+              disabled={page >= totalPages || pageLoading}
+              className="px-4 py-2 text-sm font-semibold rounded-lg disabled:opacity-40 disabled:cursor-not-allowed"
+              style={{ border: '1px solid var(--c-border)', color: 'var(--c-text)' }}
+            >
+              Next →
+            </button>
           </div>
         )}
       </div>
