@@ -292,6 +292,17 @@ export default function CollectionsPage() {
     church: currentCategory ? (data?.churches || []).length : typedData.churches.count,
   }
 
+  // How many of each type are actually rendered in the grid right now —
+  // mirrors `displayed`'s own source selection exactly, so the "Showing X
+  // of Y" caption below can never drift from what's really on screen (that
+  // drift, reading a separate truncated-preview endpoint's own numbers
+  // instead, was the original bug).
+  const shownCounts = {
+    nysc_kit: currentCategory ? (data?.nysc_kits || []).length : typedData.nysc_kits.results.length,
+    nysc_tour: currentCategory ? (data?.nysc_tours || []).length : typedData.nysc_tours.results.length,
+    church: currentCategory ? (data?.churches || []).length : typedData.churches.results.length,
+  }
+
   // Pagination only applies to a single-type tab with no category filter —
   // that's the only combination backed by a real, page-able endpoint (the
   // "all" view and category-filtered views come from the separate
@@ -397,21 +408,22 @@ export default function CollectionsPage() {
           </div>
         </div>
 
-        {/* Only shown in the combined "All Products" view — this reflects
-            the separate featured-preview endpoint's own real numbers, so it
-            stays out of the way once a single-type tab (with its own,
-            actually-paginated "Showing X-Y of Z" caption below) is active,
-            instead of showing two conflicting counts on screen at once. */}
-        {activeTab === 'all' && data?.pagination && (
+        {/* Only shown in the combined "All Products" view — reads shownCounts/
+            counts (the same values `displayed` renders from), not the
+            separate featured-preview endpoint's own numbers, so this can't
+            drift from what's actually in the grid below. Hidden once a
+            single-type tab (with its own "Showing X-Y of Z" caption further
+            down) is active, to avoid showing two counts at once. */}
+        {activeTab === 'all' && (
           <div
             className="grid md:grid-cols-3 gap-3 mb-8"
             style={{ color: 'var(--c-text-muted)' }}
           >
             {[
-              ['NYSC Kits', data.pagination.nysc_kits],
-              ['NYSC Tours', data.pagination.nysc_tours],
-              ['Church Items', data.pagination.churches],
-            ].map(([label, meta]) => (
+              ['NYSC Kits', 'nysc_kit'],
+              ['NYSC Tours', 'nysc_tour'],
+              ['Church Items', 'church'],
+            ].map(([label, key]) => (
               <div
                 key={label}
                 className="rounded-lg px-4 py-3"
@@ -419,8 +431,8 @@ export default function CollectionsPage() {
               >
                 <p className="text-xs font-semibold mb-1" style={{ color: 'var(--c-text)' }}>{label}</p>
                 <p className="text-xs">
-                  Showing {meta?.showing ?? 0} of {meta?.total ?? 0}
-                  {meta?.has_more ? ' in featured storefront view' : ''}
+                  Showing {shownCounts[key]} of {counts[key]}
+                  {counts[key] > shownCounts[key] ? ` — open the ${label} tab to see more` : ''}
                 </p>
               </div>
             ))}
