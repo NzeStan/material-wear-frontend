@@ -1170,7 +1170,6 @@ export default function ImageOrganizerDashboard() {
               <div>
                 <p className="font-semibold mb-1">Admin features are restricted</p>
                 <p>
-                  Coupon generation and coupon code lists are available to admin accounts only.
                   You can still manage your own image links and download order summaries.
                 </p>
               </div>

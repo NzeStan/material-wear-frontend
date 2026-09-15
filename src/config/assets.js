@@ -114,15 +114,19 @@ export const ASSETS = {
 
   // ── SOCIAL / SEO ───────────────────────────────────────────
   social: {
-    /** OG image for link previews (1200×630).
-     *  Was pointing at a non-existent 'YOUR_CLOUD' cloud name, so every
-     *  WhatsApp/Facebook/Twitter share of a link showed no preview image.
-     *  Now uses a real asset, resized+cropped to OG's 1200x630 by Cloudinary.
-     *  NOTE: this is a product photo standing in for a proper branded OG
-     *  card — worth replacing with a designed 1200x630 image. If you change
-     *  it, also update the og:image/twitter:image tags in index.html, which
-     *  must be static HTML for crawlers (they don't run JS). */
-    og: 'https://res.cloudinary.com/dhhaiy58r/image/upload/v1685717654/hood_pics/5_jpt974.jpg',
+    /** OG image for link previews (1200×630) — used for every shareable
+     *  link on the site (bulk order links, excel/image bulk order links,
+     *  referral links, etc.), since this is a single-page app with one
+     *  static index.html serving every route — there's no per-route/
+     *  server-rendered meta tag mechanism, so this one image is what
+     *  shows up everywhere a link gets shared.
+     *  c_pad (not c_fill) since the logo itself is a square 500x500 —
+     *  a fill-crop to a 1200x630 rectangle would stretch/crop it; padding
+     *  onto the brand's primary green keeps the full logo intact.
+     *  If you change this, also update the og:image/twitter:image tags in
+     *  index.html, which must be static HTML for crawlers (they don't run
+     *  JS). */
+    og: 'https://res.cloudinary.com/dhhaiy58r/image/upload/c_pad,w_1200,h_630,b_rgb:064E3B/v1786786523/hood_pics/material_logo_dl7qrk.png',
   },
 
   // ── BACKGROUNDS & TEXTURES ─────────────────────────────────
