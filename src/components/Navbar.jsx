@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { APP, NAVIGATION, SOCIAL } from '../config/constants'
 import { ASSETS } from '../config/assets'
@@ -6,6 +6,7 @@ import { useIsScrolled } from '../hooks/useScrollAnimation'
 import { useTheme } from '../hooks/useTheme'
 import { useAuth } from '../context/AuthContext'
 import { useCart } from '../context/CartContext'
+import MobileMenu from './MobileMenu'
 
 function getInitials(user) {
   if (!user) return '?'
@@ -30,11 +31,7 @@ export default function Navbar() {
   // Close menu on route change
   useEffect(() => { setMenuOpen(false); setAccountOpen(false) }, [location])
 
-  // Prevent scroll when menu is open
-  useEffect(() => {
-    document.body.style.overflow = menuOpen ? 'hidden' : ''
-    return () => { document.body.style.overflow = '' }
-  }, [menuOpen])
+  const closeMenu = useCallback(() => setMenuOpen(false), [])
 
   // Close account dropdown on outside click
   useEffect(() => {
@@ -54,6 +51,7 @@ export default function Navbar() {
 
   const handleLogout = async () => {
     setAccountOpen(false)
+    setMenuOpen(false)
     await logout()
     navigate('/')
   }
@@ -501,250 +499,17 @@ export default function Navbar() {
           </div>
         </nav>
 
-        {/* ── MOBILE MENU ──────────────────────────────────── */}
-        <div
-          className={`lg:hidden fixed inset-0 z-50 transition-all duration-500 ${
-            menuOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
-          }`}
-          style={{ background: 'var(--c-primary)' }}
-          role="dialog"
-          aria-label="Navigation menu"
-        >
-          {/* Close button */}
-          <button
-            onClick={() => setMenuOpen(false)}
-            className="absolute top-6 right-6 text-white opacity-70 hover:opacity-100 transition-opacity"
-            aria-label="Close menu"
-          >
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-              <path d="M18 6L6 18M6 6l12 12"/>
-            </svg>
-          </button>
-
-          <div className="flex flex-col h-full px-8 pt-24 pb-12">
-            <nav>
-              <ul className="space-y-2">
-                {NAVIGATION.map((item, i) => (
-                  <li key={item.path}
-                    className="overflow-hidden"
-                    style={{ transitionDelay: menuOpen ? `${i * 60}ms` : '0ms' }}
-                  >
-                    <Link
-                      to={item.path}
-                      className={`block py-3 border-b transition-all duration-300 ${
-                        menuOpen ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'
-                      }`}
-                      style={{ borderColor: 'rgba(255,255,255,0.1)' }}
-                    >
-                      <span className="font-display text-3xl font-light text-white tracking-wide">
-                        {item.label}
-                      </span>
-                    </Link>
-                  </li>
-                ))}
-
-                {/* Account links in mobile menu */}
-                <li className="overflow-hidden pt-2" style={{ transitionDelay: menuOpen ? `${NAVIGATION.length * 60}ms` : '0ms' }}>
-                  {isAuthenticated ? (
-                    <>
-                      {user?.is_staff && (
-                        <Link
-                          to="/admin"
-                          className={`flex items-center gap-3 py-3 border-b transition-all duration-300 ${menuOpen ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'}`}
-                          style={{ borderColor: 'rgba(255,255,255,0.1)' }}
-                        >
-                          <div className="w-8 h-8 rounded-full flex items-center justify-center"
-                            style={{ background: 'rgba(245,158,11,0.25)' }}>
-                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ color: '#fde68a' }}>
-                              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-                            </svg>
-                          </div>
-                          <span className="font-display text-2xl font-light text-white tracking-wide">Admin Dashboard</span>
-                        </Link>
-                      )}
-                      <Link
-                        to="/profile"
-                        className={`flex items-center gap-3 py-3 border-b transition-all duration-300 ${menuOpen ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'}`}
-                        style={{ borderColor: 'rgba(255,255,255,0.1)' }}
-                      >
-                        <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold"
-                          style={{ background: 'rgba(245,158,11,0.2)', color: 'var(--c-accent-light)' }}>
-                          {getInitials(user)}
-                        </div>
-                        <span className="font-display text-2xl font-light text-white tracking-wide">My Account</span>
-                      </Link>
-                      <Link
-                        to="/my-orders"
-                        className={`flex items-center gap-3 py-3 border-b transition-all duration-300 ${menuOpen ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'}`}
-                        style={{ borderColor: 'rgba(255,255,255,0.1)' }}
-                      >
-                        <div className="w-8 h-8 rounded-full flex items-center justify-center"
-                          style={{ background: 'rgba(255,255,255,0.1)' }}>
-                          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ color: 'rgba(255,255,255,0.7)' }}>
-                            <line x1="16.5" y1="9.4" x2="7.5" y2="4.21"/>
-                            <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
-                            <polyline points="3.27 6.96 12 12.01 20.73 6.96"/>
-                            <line x1="12" y1="22.08" x2="12" y2="12"/>
-                          </svg>
-                        </div>
-                        <span className="font-display text-2xl font-light text-white tracking-wide">My Orders</span>
-                      </Link>
-                      <Link
-                        to="/organiser"
-                        className={`flex items-center gap-3 py-3 border-b transition-all duration-300 ${menuOpen ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'}`}
-                        style={{ borderColor: 'rgba(255,255,255,0.1)' }}
-                      >
-                        <div className="w-8 h-8 rounded-full flex items-center justify-center"
-                          style={{ background: 'rgba(255,255,255,0.1)' }}>
-                          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ color: 'rgba(255,255,255,0.7)' }}>
-                            <path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
-                          </svg>
-                        </div>
-                        <span className="font-display text-2xl font-light text-white tracking-wide">Organiser</span>
-                      </Link>
-                      <Link
-                        to="/image-my-orders"
-                        className={`flex items-center gap-3 py-3 border-b transition-all duration-300 ${menuOpen ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'}`}
-                        style={{ borderColor: 'rgba(255,255,255,0.1)' }}
-                      >
-                        <div className="w-8 h-8 rounded-full flex items-center justify-center"
-                          style={{ background: 'rgba(245,158,11,0.2)' }}>
-                          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" style={{ color: '#fde68a' }}>
-                            <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/>
-                            <polyline points="21 15 16 10 5 21"/>
-                          </svg>
-                        </div>
-                        <span className="font-display text-2xl font-light text-white tracking-wide">Image Orders</span>
-                      </Link>
-                      <Link
-                        to="/image-organiser"
-                        className={`flex items-center gap-3 py-3 border-b transition-all duration-300 ${menuOpen ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'}`}
-                        style={{ borderColor: 'rgba(255,255,255,0.1)' }}
-                      >
-                        <div className="w-8 h-8 rounded-full flex items-center justify-center"
-                          style={{ background: 'rgba(245,158,11,0.2)' }}>
-                          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" style={{ color: '#fde68a' }}>
-                            <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/>
-                            <polyline points="21 15 16 10 5 21"/>
-                          </svg>
-                        </div>
-                        <span className="font-display text-2xl font-light text-white tracking-wide">Image Organiser</span>
-                      </Link>
-                      <Link
-                        to="/excel-my-orders"
-                        className={`flex items-center gap-3 py-3 border-b transition-all duration-300 ${menuOpen ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'}`}
-                        style={{ borderColor: 'rgba(255,255,255,0.1)' }}
-                      >
-                        <div className="w-8 h-8 rounded-full flex items-center justify-center"
-                          style={{ background: 'rgba(22,163,74,0.2)' }}>
-                          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" style={{ color: '#86efac' }}>
-                            <rect x="3" y="3" width="18" height="18" rx="2"/>
-                            <line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/>
-                            <line x1="9" y1="3" x2="9" y2="21"/>
-                          </svg>
-                        </div>
-                        <span className="font-display text-2xl font-light text-white tracking-wide">Excel Orders</span>
-                      </Link>
-                      <Link
-                        to="/excel-bulk-order/new"
-                        className={`flex items-center gap-3 py-3 border-b transition-all duration-300 ${menuOpen ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'}`}
-                        style={{ borderColor: 'rgba(255,255,255,0.1)' }}
-                      >
-                        <div className="w-8 h-8 rounded-full flex items-center justify-center"
-                          style={{ background: 'rgba(22,163,74,0.2)' }}>
-                          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ color: '#86efac' }}>
-                            <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
-                          </svg>
-                        </div>
-                        <span className="font-display text-2xl font-light text-white tracking-wide">New Excel Order</span>
-                      </Link>
-                      <Link
-                        to="/live-form-organiser"
-                        className={`flex items-center gap-3 py-3 border-b transition-all duration-300 ${menuOpen ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'}`}
-                        style={{ borderColor: 'rgba(255,255,255,0.1)' }}
-                      >
-                        <div className="w-8 h-8 rounded-full flex items-center justify-center"
-                          style={{ background: 'rgba(239,68,68,0.2)' }}>
-                          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" style={{ color: '#fca5a5' }}>
-                            <circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3" fill="currentColor" stroke="none"/>
-                          </svg>
-                        </div>
-                        <span className="font-display text-2xl font-light text-white tracking-wide">Live Forms</span>
-                      </Link>
-                      <Link
-                        to="/measurements"
-                        className={`flex items-center gap-3 py-3 border-b transition-all duration-300 ${menuOpen ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'}`}
-                        style={{ borderColor: 'rgba(255,255,255,0.1)' }}
-                      >
-                        <div className="w-8 h-8 rounded-full flex items-center justify-center"
-                          style={{ background: 'rgba(99,102,241,0.2)' }}>
-                          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" style={{ color: '#c7d2fe' }}>
-                            <path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
-                          </svg>
-                        </div>
-                        <span className="font-display text-2xl font-light text-white tracking-wide">Measurements</span>
-                      </Link>
-                      <Link
-                        to="/academic-directory/submit"
-                        className={`flex items-center gap-3 py-3 border-b transition-all duration-300 ${menuOpen ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'}`}
-                        style={{ borderColor: 'rgba(255,255,255,0.1)' }}
-                      >
-                        <div className="w-8 h-8 rounded-full flex items-center justify-center"
-                          style={{ background: 'rgba(251,191,36,0.2)' }}>
-                          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" style={{ color: '#fde68a' }}>
-                            <path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/>
-                          </svg>
-                        </div>
-                        <span className="font-display text-2xl font-light text-white tracking-wide">Academic Directory</span>
-                      </Link>
-                    </>
-                  ) : (
-                    <Link
-                      to="/login"
-                      className={`block py-3 border-b transition-all duration-300 ${menuOpen ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'}`}
-                      style={{ borderColor: 'rgba(255,255,255,0.1)' }}
-                    >
-                      <span className="font-display text-3xl font-light text-white tracking-wide">Sign In</span>
-                    </Link>
-                  )}
-                </li>
-              </ul>
-            </nav>
-
-            <div className="mt-auto">
-              {isAuthenticated && (
-                <button
-                  onClick={handleLogout}
-                  className="flex items-center gap-2 mb-6 text-sm font-medium"
-                  style={{ color: 'rgba(255,255,255,0.5)' }}
-                  onMouseEnter={e => e.currentTarget.style.color = 'rgba(255,255,255,0.8)'}
-                  onMouseLeave={e => e.currentTarget.style.color = 'rgba(255,255,255,0.5)'}
-                >
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
-                    <polyline points="16 17 21 12 16 7"/>
-                    <line x1="21" y1="12" x2="9" y2="12"/>
-                  </svg>
-                  Sign Out
-                </button>
-              )}
-              <div className="flex gap-4 mb-6">
-                <a href={SOCIAL.instagram} target="_blank" rel="noopener noreferrer"
-                  className="text-white opacity-60 hover:opacity-100 text-sm tracking-widest uppercase">
-                  Instagram
-                </a>
-                <a href={SOCIAL.facebook} target="_blank" rel="noopener noreferrer"
-                  className="text-white opacity-60 hover:opacity-100 text-sm tracking-widest uppercase">
-                  Facebook
-                </a>
-              </div>
-              <p className="text-white opacity-40 text-xs tracking-widest uppercase">
-                © {new Date().getFullYear()} {APP.name}
-              </p>
-            </div>
-          </div>
-        </div>
       </header>
+
+      {/* Portal into <body> — see MobileMenu.jsx for why it can't live inside the header */}
+      <MobileMenu
+        open={menuOpen}
+        onClose={closeMenu}
+        isAuthenticated={isAuthenticated}
+        isStaff={!!user?.is_staff}
+        initials={getInitials(user)}
+        onLogout={handleLogout}
+      />
     </>
   )
 }
