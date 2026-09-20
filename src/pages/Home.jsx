@@ -657,12 +657,6 @@ function BulkOrdersCTA() {
 }
 
 // ── TESTIMONIALS ─────────────────────────────────────────────
-const FALLBACK_TESTIMONIALS = [
-  { id: 1, author_display: 'Adaeze O.', location: 'Lagos', rating: 5, content: "The quality of Material Wear's shirts is unmatched. I've been wearing them for over a year and they still look brand new. Worth every naira.", is_verified: false },
-  { id: 2, author_display: 'Emeka C.',  location: 'Abuja', rating: 5, content: "I wore their formal collection to a client meeting and got three compliments within the first hour. This brand understands what it means to dress well.", is_verified: false },
-  { id: 3, author_display: 'Fatima A.', location: 'Kano',  rating: 5, content: "Finally a Nigerian brand that doesn't compromise on quality. The fabric feels premium, the cut is perfect. I'm a customer for life.", is_verified: false },
-]
-
 function Testimonials() {
   const headerRef  = useScrollRevealGroup(120)
   const cardsRef   = useRef(null)
@@ -673,9 +667,9 @@ function Testimonials() {
     api.get('/testimonials/testimonials/featured/')
       .then(data => {
         const list = Array.isArray(data) ? data : (data.results || [])
-        setItems(list.slice(0, 3).length ? list.slice(0, 3) : FALLBACK_TESTIMONIALS)
+        setItems(list.slice(0, 3))
       })
-      .catch(() => setItems(FALLBACK_TESTIMONIALS))
+      .catch(() => setItems([]))
       .finally(() => setLoading(false))
   }, [])
 
@@ -717,7 +711,14 @@ function Testimonials() {
                   </div>
                 </div>
               ))
-            : items.map((t) => (
+            : items.length === 0 ? (
+                <div className="md:col-span-3 text-center py-10" style={{ color: 'var(--c-text-muted)' }}>
+                  <p className="font-display text-xl mb-2" style={{ color: 'var(--c-primary)' }}>
+                    Be the first to share your experience
+                  </p>
+                  <p className="text-sm">Real reviews from our customers will appear here.</p>
+                </div>
+              ) : items.map((t) => (
                 <div
                   key={t.id}
                   className="testimonial-card"

@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback, memo } from 'react'
-import { useLocation } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import { api } from '../../services/api'
 import { useAuth } from '../../context/AuthContext'
 
@@ -534,13 +534,20 @@ function SubmitForm({ categories, onSuccess }) {
             </p>
             <p style={{ fontSize: 11, color: 'var(--c-text-muted)', margin: 0, lineHeight: 1.6 }}>
               This is a strong addition for trust. Images and short videos make reviews feel much more real.
-              {!isAuthenticated && ' With the current API, attachments can only be saved for signed-in users.'}
+              {!isAuthenticated && ' Sign in to attach photos or videos.'}
             </p>
           </div>
-          <button type="button" onClick={() => attachmentInputRef.current?.click()}
-            style={{ fontSize: 12, fontWeight: 700, padding: '8px 14px', borderRadius: 6, border: '1px solid var(--c-border)', background: 'var(--c-surface)', cursor: 'pointer', color: 'var(--c-text)' }}>
-            Add Media
-          </button>
+          {isAuthenticated ? (
+            <button type="button" onClick={() => attachmentInputRef.current?.click()}
+              style={{ fontSize: 12, fontWeight: 700, padding: '8px 14px', borderRadius: 6, border: '1px solid var(--c-border)', background: 'var(--c-surface)', cursor: 'pointer', color: 'var(--c-text)' }}>
+              Add Media
+            </button>
+          ) : (
+            <Link to="/login" state={{ from: { pathname: '/testimonials' } }}
+              style={{ fontSize: 12, fontWeight: 700, padding: '8px 14px', borderRadius: 6, border: '1px solid var(--c-border)', background: 'var(--c-surface)', color: 'var(--c-primary)' }}>
+              Sign in to add media
+            </Link>
+          )}
           <input
             ref={attachmentInputRef}
             type="file"
