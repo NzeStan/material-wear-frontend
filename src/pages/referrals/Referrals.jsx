@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import { useScrollRevealGroup, useScrollReveal } from '../../hooks/useScrollAnimation'
 import { api } from '../../services/api'
@@ -509,6 +509,7 @@ function AdminProfileModal({ profileId, onClose, onSaved, onDeleted }) {
   const [saving, setSaving] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [alert, setAlert] = useState({ type: '', message: '' })
+  const { copy: copyLink, copied: linkCopied } = useCopy()
 
   useEffect(() => {
     ;(async () => {
@@ -583,7 +584,22 @@ function AdminProfileModal({ profileId, onClose, onSaved, onDeleted }) {
               </div>
               <div>
                 <label className="form-label">Referral Code</label>
-                <div className="form-input font-mono tracking-widest" style={{ background: 'var(--c-bg-warm)' }}>{profile?.referral_code || '—'}</div>
+                <div className="form-input font-mono tracking-widest flex items-center justify-between gap-3" style={{ background: 'var(--c-bg-warm)' }}>
+                  <span>{profile?.referral_code || '—'}</span>
+                  {profile?.referral_code && (
+                    <button type="button" className="text-xs font-semibold tracking-normal underline underline-offset-2"
+                      style={{ color: 'var(--c-primary)' }}
+                      onClick={() => copyLink(`${window.location.origin}/referrals?code=${profile.referral_code}`)}>
+                      {linkCopied ? 'Link copied' : 'Copy link'}
+                    </button>
+                  )}
+                </div>
+              </div>
+              <div>
+                <label className="form-label">Member Since</label>
+                <div className="form-input" style={{ background: 'var(--c-bg-warm)' }}>
+                  {profile?.created_at ? new Date(profile.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) : '—'}
+                </div>
               </div>
               {[
                 ['full_name', 'Full Name'],
@@ -838,18 +854,63 @@ function AdminReferralPanel({ media, onMediaUpdated }) {
   const [profileModalId, setProfileModalId] = useState(null)
   const [mediaModalId, setMediaModalId] = useState(null)
   const [createMediaOpen, setCreateMediaOpen] = useState(false)
+  const [searchParams, setSearchParams] = useSearchParams()
+  const [query, setQuery] = useState('')
+  const [lookupError, setLookupError] = useState('')
 
+  // The API paginates (20 per page) - follow every page so nobody is missing.
   const loadProfiles = useCallback(async () => {
     setLoadingProfiles(true)
     try {
-      const data = await api.get('/referrals/profiles/')
-      setProfiles(Array.isArray(data) ? data : (data?.results || []))
+      let all = []
+      for (let page = 1; page <= 100; page += 1) {
+        const data = await api.get(`/referrals/profiles/?page=${page}`)
+        if (Array.isArray(data)) { all = data; break }
+        all = all.concat(data?.results || [])
+        if (!data?.next) break
+      }
+      setProfiles(all)
     } finally {
       setLoadingProfiles(false)
     }
   }, [])
 
   useEffect(() => { loadProfiles() }, [loadProfiles])
+
+  // Click/enter a referral code -> open its owner's full details.
+  const openByCode = useCallback(async (raw) => {
+    const code = (raw || '').trim().toUpperCase()
+    setLookupError('')
+    if (!/^[A-Z0-9]{8}$/.test(code)) {
+      setLookupError('A referral code is 8 letters/numbers.')
+      return
+    }
+    try {
+      const found = await api.get(`/referrals/profiles/by-code/${code}/`)
+      setProfileModalId(found.id)
+    } catch {
+      setLookupError(`No referrer found for code ${code}.`)
+    }
+  }, [])
+
+  // /referrals?code=ABCD1234 opens that owner directly.
+  const codeParam = searchParams.get('code')
+  useEffect(() => { if (codeParam) openByCode(codeParam) }, [codeParam, openByCode])
+
+  const closeProfileModal = () => {
+    setProfileModalId(null)
+    if (codeParam) {
+      const next = new URLSearchParams(searchParams)
+      next.delete('code')
+      setSearchParams(next, { replace: true })
+    }
+  }
+
+  const q = query.trim().toLowerCase()
+  const visibleProfiles = q
+    ? profiles.filter(item => [item.full_name, item.user_email, item.referral_code, item.phone_number]
+        .some(v => (v || '').toLowerCase().includes(q)))
+    : profiles
 
   const handleProfileSaved = (updated) => {
     setProfiles(prev => prev.map(item => item.id === updated.id ? { ...item, ...updated } : item))
@@ -871,7 +932,7 @@ function AdminReferralPanel({ media, onMediaUpdated }) {
       {profileModalId && (
         <AdminProfileModal
           profileId={profileModalId}
-          onClose={() => setProfileModalId(null)}
+          onClose={closeProfileModal}
           onSaved={handleProfileSaved}
           onDeleted={handleProfileDeleted}
         />
@@ -908,19 +969,32 @@ function AdminReferralPanel({ media, onMediaUpdated }) {
           <div style={{ background: 'var(--c-surface)', border: '1px solid #E5E7EB' }} className="p-6">
             <div className="flex items-center justify-between mb-5">
               <h3 className="font-display text-2xl" style={{ color: 'var(--c-primary)' }}>Referrer Profiles</h3>
-              <span className="text-xs uppercase tracking-widest" style={{ color: 'var(--c-text-muted)' }}>{profiles.length} total</span>
+              <span className="text-xs uppercase tracking-widest" style={{ color: 'var(--c-text-muted)' }}>{q ? `${visibleProfiles.length} of ${profiles.length}` : `${profiles.length} total`}</span>
             </div>
+            <form className="flex gap-2 mb-4" onSubmit={e => { e.preventDefault(); openByCode(query) }}>
+              <input className="form-input flex-1" value={query} placeholder="Search name, email, phone or referral code"
+                onChange={e => { setQuery(e.target.value); setLookupError('') }} />
+              <button type="submit" className="btn-primary" style={{ padding: '0 1rem' }}><span>Open code</span></button>
+            </form>
+            {lookupError && <p className="mb-3 text-xs" style={{ color: '#DC2626' }}>{lookupError}</p>}
             {loadingProfiles ? (
               <p className="text-sm" style={{ color: 'var(--c-text-muted)' }}>Loading profiles…</p>
             ) : (
               <div className="space-y-3 max-h-[440px] overflow-auto">
-                {profiles.map(item => (
+                {visibleProfiles.length === 0 && (
+                  <p className="text-sm" style={{ color: 'var(--c-text-muted)' }}>No referrers match "{query}".</p>
+                )}
+                {visibleProfiles.map(item => (
                   <button key={item.id} onClick={() => setProfileModalId(item.id)} className="w-full text-left p-4 transition-colors"
                     style={{ background: 'var(--c-bg)', border: '1px solid #E5E7EB' }}>
                     <div className="flex items-center justify-between gap-4">
                       <div>
                         <p className="text-sm font-semibold" style={{ color: 'var(--c-primary)' }}>{item.full_name}</p>
-                        <p className="text-xs mt-1" style={{ color: 'var(--c-text-muted)' }}>{item.user_email} · {item.referral_code}</p>
+                        <p className="text-xs mt-1 flex items-center gap-2 flex-wrap" style={{ color: 'var(--c-text-muted)' }}>
+                          <span>{item.user_email}</span>
+                          <span className="font-mono font-semibold tracking-widest px-1.5 py-0.5"
+                            style={{ background: 'rgba(245,158,11,0.15)', color: 'var(--c-accent-dark)' }}>{item.referral_code}</span>
+                        </p>
                       </div>
                       <span className="text-xs font-semibold" style={{ color: item.is_active ? 'var(--c-primary)' : '#DC2626' }}>
                         {item.is_active ? 'Active' : 'Inactive'}
@@ -1592,31 +1666,37 @@ function Dashboard({ profile, sharePayload, media, isAdmin, onProfileUpdated, on
               </p>
             </div>
 
-            {/* Flyers */}
-            {flyers.length > 0 && (
-              <div className="mb-12">
-                <p className="text-xs font-semibold tracking-widest uppercase mb-5"
-                  style={{ color: 'var(--c-text-muted)' }}>
-                  ✦ Flyers ({flyers.length})
-                </p>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
-                  {flyers.map(item => <MediaCard key={item.id} item={item} referralCode={referralCode} shareFooter={shareFooter} />)}
-                </div>
-              </div>
-            )}
+            {/* Flyers + videos: side by side on laptops and up, stacked below that */}
+            {(() => {
+              const both = flyers.length > 0 && videos.length > 0
+              return (
+                <div className={`grid grid-cols-1 gap-12 items-start ${both ? 'lg:grid-cols-[3fr_2fr]' : ''}`}>
+                  {flyers.length > 0 && (
+                    <div>
+                      <p className="text-xs font-semibold tracking-widest uppercase mb-5"
+                        style={{ color: 'var(--c-text-muted)' }}>
+                        ✦ Flyers ({flyers.length})
+                      </p>
+                      <div className={`grid grid-cols-1 sm:grid-cols-2 gap-5 ${both ? '' : 'lg:grid-cols-3 xl:grid-cols-4'}`}>
+                        {flyers.map(item => <MediaCard key={item.id} item={item} referralCode={referralCode} shareFooter={shareFooter} />)}
+                      </div>
+                    </div>
+                  )}
 
-            {/* Videos */}
-            {videos.length > 0 && (
-              <div>
-                <p className="text-xs font-semibold tracking-widest uppercase mb-5"
-                  style={{ color: 'var(--c-text-muted)' }}>
-                  ▶ Videos ({videos.length})
-                </p>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {videos.map(item => <MediaCard key={item.id} item={item} referralCode={referralCode} shareFooter={shareFooter} />)}
+                  {videos.length > 0 && (
+                    <div>
+                      <p className="text-xs font-semibold tracking-widest uppercase mb-5"
+                        style={{ color: 'var(--c-text-muted)' }}>
+                        ▶ Videos ({videos.length})
+                      </p>
+                      <div className={`grid grid-cols-1 gap-6 ${both ? '' : 'sm:grid-cols-2 lg:grid-cols-3'}`}>
+                        {videos.map(item => <MediaCard key={item.id} item={item} referralCode={referralCode} shareFooter={shareFooter} />)}
+                      </div>
+                    </div>
+                  )}
                 </div>
-              </div>
-            )}
+              )
+            })()}
           </div>
         </section>
       )}
