@@ -52,6 +52,15 @@ import { loadAdsense }            from './utils/adsense'
 // Scroll to top on route change
 function ScrollReset() {
   const { pathname, search, hash } = useLocation()
+
+  // Without this the browser re-applies the previous scroll position once a
+  // page grows tall enough (reload, back/forward, or landing from a footer
+  // link), overriding the scroll-to-top below — pages that load data after
+  // mount (e.g. /referrals) then open at the footer.
+  useEffect(() => {
+    if ('scrollRestoration' in window.history) window.history.scrollRestoration = 'manual'
+  }, [])
+
   useEffect(() => {
     if (hash) return
 

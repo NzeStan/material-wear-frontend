@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import { useScrollRevealGroup, useScrollReveal } from '../../hooks/useScrollAnimation'
@@ -89,6 +89,55 @@ function useCopy(timeout = 2000) {
   return { copied, copy }
 }
 
+// ── WhatsApp-style text ───────────────────────────────────────────────────────
+// Marketing text is shared to WhatsApp/Instagram/etc., so admins write it with
+// emojis, line breaks and WhatsApp formatting (*bold*, _italic_, ~strike~).
+// This renders the same thing on the page (as React nodes — no raw HTML).
+const FORMAT_RE = /(\*[^*\n]+\*|_[^_\n]+_|~[^~\n]+~)/g
+
+function renderFormattedText(text = '') {
+  return text.split(FORMAT_RE).map((part, i) => {
+    if (part.length > 2) {
+      const inner = part.slice(1, -1)
+      if (part.startsWith('*') && part.endsWith('*')) return <strong key={i}>{inner}</strong>
+      if (part.startsWith('_') && part.endsWith('_')) return <em key={i}>{inner}</em>
+      if (part.startsWith('~') && part.endsWith('~')) return <s key={i}>{inner}</s>
+    }
+    return part
+  })
+}
+
+const STARTER_MARKETING_TEXT =
+  '🔥 *NYSC kits, church wear & NYSC tour packages — all in one place!* 🔥\n\n' +
+  'Serving in NYSC? Planning a church programme or a group order? Material Wear Limited has you covered 🇳🇬\n\n' +
+  '✅ NYSC kits — Khaki, Vest & Cap 👕\n' +
+  '✅ Church & programme shirts, jackets and polos ⛪\n' +
+  '✅ NYSC tour packages for all 37 states 🗺️\n' +
+  '✅ Group & bulk orders for your class, church or team 🤝\n' +
+  '✅ Order online in minutes with secure payment 🔒\n\n' +
+  '_Quality you can trust — Material Wear Limited (RC 9161164)_'
+
+const QUICK_EMOJIS = ['🔥', '✅', '⭐', '🎉', '👕', '🧢', '⛪', '🙏', '🇳🇬', '🗺️', '🤝', '🛍️',
+  '💎', '📦', '🔒', '💚', '✨', '👇', '👉', '📲', '💬', '⚡', '❤️', '😍']
+
+// Cloudinary only: forces the browser to download instead of opening the file
+// (the `download` attribute is ignored on cross-origin links).
+function attachmentUrl(url) {
+  return url.includes('res.cloudinary.com') ? url.replace('/upload/', '/upload/fl_attachment/') : url
+}
+
+function isVideoItem(item) {
+  const url = item.media_url || ''
+  if (url.includes('/video/upload/')) return true
+  if (url.includes('/image/upload/')) return false
+  return item.media_type === 'video'
+}
+
+function videoPoster(url) {
+  if (!url.includes('/video/upload/')) return undefined
+  return url.replace('/video/upload/', '/video/upload/so_0/').replace(/\.[a-z0-9]+$/i, '.jpg')
+}
+
 // ── Alert component ───────────────────────────────────────────────────────────
 function Alert({ type, message, onClose }) {
   if (!message) return null
@@ -145,25 +194,67 @@ function BenefitCard({ icon, title, desc, delay }) {
 }
 
 // ── Promotional Media Card ────────────────────────────────────────────────────
-function MediaCard({ item }) {
+function MediaCard({ item, referralCode, shareFooter }) {
   const { copy: copyText, copied: textCopied } = useCopy()
-  const isVideo = item.media_type === 'video'
+  const revealRef = useScrollReveal()
+  const [expanded, setExpanded] = useState(false)
+  const [sharing, setSharing] = useState(false)
+  const [shareNote, setShareNote] = useState('')
+
+  const isVideo = isVideoItem(item)
+  const text = (item.marketing_text || '').trim()
+  const isLong = text.length > 160
+  const footer = shareFooter || (referralCode ? `💎 Use my referral code: *${referralCode}*` : '')
+  const caption = [text, footer].filter(Boolean).join('\n\n')
+
+  // Shares the actual flyer/video file + caption through the phone's share
+  // sheet (WhatsApp, Instagram, Telegram…). wa.me links can't carry files.
+  // Desktop browsers without file-sharing get the caption copied instead, with
+  // the file available via Download.
+  async function handleShare() {
+    setShareNote('')
+    setSharing(true)
+    try {
+      if (navigator.share) {
+        try {
+          const res = await fetch(item.media_url)
+          const blob = await res.blob()
+          const ext = (blob.type.split('/')[1] || (isVideo ? 'mp4' : 'jpg')).split(';')[0]
+          const safeTitle = (item.title || 'material-wear').replace(/[^\w-]+/g, '-').toLowerCase()
+          const file = new File([blob], `${safeTitle}.${ext}`, { type: blob.type })
+          if (navigator.canShare && navigator.canShare({ files: [file] })) {
+            await navigator.share({ files: [file], text: caption, title: item.title })
+            return
+          }
+        } catch (err) {
+          if (err?.name === 'AbortError') return
+        }
+        await navigator.share({ title: item.title, text: caption, url: item.media_url })
+        return
+      }
+      await copyText(caption)
+      setShareNote('Caption copied. Download the file, then attach it in WhatsApp or Instagram and paste the caption.')
+    } catch (err) {
+      if (err?.name !== 'AbortError') setShareNote('Could not open the share sheet. Use Download and Copy Caption instead.')
+    } finally {
+      setSharing(false)
+    }
+  }
 
   return (
-    <div className="reveal group"
+    <div ref={revealRef} className="reveal group flex flex-col"
       style={{ background: 'var(--c-surface)', border: '1px solid #F3F4F6', overflow: 'hidden' }}>
 
       {/* Media preview */}
-      <div className="relative aspect-video overflow-hidden"
-        style={{ background: 'var(--c-bg-warm)' }}>
+      <div className={`relative overflow-hidden ${isVideo ? 'aspect-video' : 'aspect-[4/5]'}`}
+        style={{ background: isVideo ? '#0B0B0B' : 'var(--c-bg-warm)' }}>
         {item.media_url ? (
           isVideo ? (
-            <video src={item.media_url} className="w-full h-full object-cover"
-              poster="" preload="metadata" />
+            <video src={item.media_url} poster={videoPoster(item.media_url)}
+              className="w-full h-full object-contain" controls playsInline preload="metadata" />
           ) : (
             <img src={item.media_url} alt={item.title}
-              className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-              loading="lazy" />
+              className="w-full h-full object-contain" loading="lazy" />
           )
         ) : (
           <div className="w-full h-full flex flex-col items-center justify-center gap-2"
@@ -174,64 +265,77 @@ function MediaCard({ item }) {
         )}
 
         {/* Type badge */}
-        <div className="absolute top-3 left-3 px-2.5 py-1 text-xs font-semibold tracking-widest uppercase"
+        <div className="absolute top-3 left-3 px-2.5 py-1 text-xs font-semibold tracking-widest uppercase pointer-events-none"
           style={{
             background: isVideo ? 'rgba(109,40,217,0.85)' : 'rgba(245,158,11,0.9)',
             color: 'white',
           }}>
           {isVideo ? '▶ Video' : '✦ Flyer'}
         </div>
-
-        {/* Play overlay for video */}
-        {isVideo && item.media_url && (
-          <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-            style={{ background: 'rgba(6,78,59,0.5)' }}>
-            <div className="w-12 h-12 rounded-full flex items-center justify-center bg-white">
-              <PlayIcon />
-            </div>
-          </div>
-        )}
       </div>
 
       {/* Content */}
-      <div className="p-5">
+      <div className="p-5 flex flex-col flex-1">
         <h4 className="font-display text-lg font-medium mb-2" style={{ color: 'var(--c-primary)' }}>
           {item.title}
         </h4>
-        {item.marketing_text && (
-          <p className="text-xs leading-relaxed mb-4 line-clamp-3" style={{ color: 'var(--c-text-muted)' }}>
-            {item.marketing_text}
-          </p>
+        {text && (
+          <div className="mb-4">
+            <p className={`text-xs leading-relaxed whitespace-pre-line ${expanded ? '' : 'line-clamp-4'}`}
+              style={{ color: 'var(--c-text-muted)' }}>
+              {renderFormattedText(text)}
+            </p>
+            {isLong && (
+              <button onClick={() => setExpanded(p => !p)} className="mt-1 text-xs font-semibold"
+                style={{ color: 'var(--c-primary)' }}>
+                {expanded ? 'Show less' : 'Read more'}
+              </button>
+            )}
+          </div>
         )}
 
         {/* Actions */}
-        <div className="flex gap-2">
+        <div className="mt-auto flex flex-col gap-2">
           {item.media_url && (
-            <a
-              href={item.media_url}
-              download={item.title}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-1.5 px-3 py-2 text-xs font-medium tracking-wide transition-all duration-200 flex-1 justify-center"
-              style={{ background: 'var(--c-bg)', border: '1px solid #E5E7EB', color: 'var(--c-text)' }}
-              onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--c-primary)'; e.currentTarget.style.color = 'var(--c-primary)' }}
-              onMouseLeave={e => { e.currentTarget.style.borderColor = '#E5E7EB'; e.currentTarget.style.color = 'var(--c-text)' }}
-            >
-              <DownloadIcon /> {isVideo ? 'Save' : 'Download'}
-            </a>
-          )}
-          {item.marketing_text && (
             <button
-              onClick={() => copyText(item.marketing_text)}
-              className="flex items-center gap-1.5 px-3 py-2 text-xs font-medium tracking-wide transition-all duration-200 flex-1 justify-center"
-              style={{
-                background: textCopied ? 'rgba(6,78,59,0.06)' : 'var(--c-bg)',
-                border: `1px solid ${textCopied ? 'var(--c-primary)' : '#E5E7EB'}`,
-                color: textCopied ? 'var(--c-primary)' : 'var(--c-text)',
-              }}
+              onClick={handleShare}
+              disabled={sharing}
+              className="flex items-center gap-1.5 px-3 py-2.5 text-xs font-semibold tracking-wide justify-center text-white transition-all duration-200"
+              style={{ background: '#25D366', opacity: sharing ? 0.7 : 1 }}
             >
-              {textCopied ? <><CheckIcon /> Copied!</> : <><CopyIcon /> Copy Text</>}
+              <ShareIcon /> {sharing ? 'Preparing…' : `Share ${isVideo ? 'Video' : 'Flyer'}`}
             </button>
+          )}
+          <div className="flex gap-2">
+            {item.media_url && (
+              <a
+                href={attachmentUrl(item.media_url)}
+                download
+                rel="noopener noreferrer"
+                className="flex items-center gap-1.5 px-3 py-2 text-xs font-medium tracking-wide transition-all duration-200 flex-1 justify-center"
+                style={{ background: 'var(--c-bg)', border: '1px solid #E5E7EB', color: 'var(--c-text)' }}
+                onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--c-primary)'; e.currentTarget.style.color = 'var(--c-primary)' }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor = '#E5E7EB'; e.currentTarget.style.color = 'var(--c-text)' }}
+              >
+                <DownloadIcon /> {isVideo ? 'Save' : 'Download'}
+              </a>
+            )}
+            {caption && (
+              <button
+                onClick={() => copyText(caption)}
+                className="flex items-center gap-1.5 px-3 py-2 text-xs font-medium tracking-wide transition-all duration-200 flex-1 justify-center"
+                style={{
+                  background: textCopied ? 'rgba(6,78,59,0.06)' : 'var(--c-bg)',
+                  border: `1px solid ${textCopied ? 'var(--c-primary)' : '#E5E7EB'}`,
+                  color: textCopied ? 'var(--c-primary)' : 'var(--c-text)',
+                }}
+              >
+                {textCopied ? <><CheckIcon /> Copied!</> : <><CopyIcon /> Copy Caption</>}
+              </button>
+            )}
+          </div>
+          {shareNote && (
+            <p className="text-xs leading-relaxed" style={{ color: 'var(--c-text-muted)' }}>{shareNote}</p>
           )}
         </div>
       </div>
@@ -334,7 +438,7 @@ export default function Referrals() {
 // ── Loading state ─────────────────────────────────────────────────────────────
 function LoadingState() {
   return (
-    <div className="flex-1 flex items-center justify-center" style={{ minHeight: '60vh', background: 'var(--c-bg)' }}>
+    <div className="flex-1 flex items-center justify-center" style={{ minHeight: '100vh', background: 'var(--c-bg)' }}>
       <div className="text-center">
         <div className="w-10 h-10 border-2 rounded-full animate-spin mx-auto mb-4"
           style={{ borderColor: 'var(--c-primary)', borderTopColor: 'transparent' }} />
@@ -533,6 +637,28 @@ function AdminMediaModal({ mediaId, onClose, onSaved, onDeleted }) {
   const [saving, setSaving] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [alert, setAlert] = useState({ type: '', message: '' })
+  const textRef = useRef(null)
+
+  // Edit the marketing text at the caret so emojis/formatting land where the
+  // admin is typing, and restore the caret afterwards.
+  const applyTextEdit = (build) => {
+    const el = textRef.current
+    const value = formData.marketing_text
+    const start = el ? el.selectionStart : value.length
+    const end = el ? el.selectionEnd : value.length
+    const { next, caret } = build(value, start, end)
+    setFormData(prev => ({ ...prev, marketing_text: next }))
+    requestAnimationFrame(() => {
+      if (!textRef.current) return
+      textRef.current.focus()
+      textRef.current.setSelectionRange(caret, caret)
+    })
+  }
+  const insertText = (text) => applyTextEdit((v, a, b) => ({ next: v.slice(0, a) + text + v.slice(b), caret: a + text.length }))
+  const wrapSelection = (mark) => applyTextEdit((v, a, b) => {
+    const selected = v.slice(a, b)
+    return { next: v.slice(0, a) + mark + selected + mark + v.slice(b), caret: selected ? b + mark.length * 2 : a + mark.length }
+  })
 
   useEffect(() => {
     if (isCreate) return
@@ -635,8 +761,50 @@ function AdminMediaModal({ mediaId, onClose, onSaved, onDeleted }) {
               </div>
             </div>
             <div>
-              <label className="form-label">Marketing Text</label>
-              <textarea className="form-input min-h-[140px]" value={formData.marketing_text} onChange={e => setFormData(prev => ({ ...prev, marketing_text: e.target.value }))} />
+              <div className="flex items-center justify-between gap-3 mb-1">
+                <label className="form-label !mb-0">Marketing Text</label>
+                <button type="button" onClick={() => setFormData(prev => ({ ...prev, marketing_text: STARTER_MARKETING_TEXT }))}
+                  className="text-xs font-semibold underline underline-offset-2" style={{ color: 'var(--c-primary)' }}>
+                  Insert starter draft
+                </button>
+              </div>
+
+              {/* Formatting + emoji toolbar */}
+              <div className="flex flex-wrap items-center gap-1.5 p-2 mb-2" style={{ background: 'var(--c-bg-warm)', border: '1px solid #E5E7EB' }}>
+                {[
+                  ['*', 'B', 'Bold', { fontWeight: 700 }],
+                  ['_', 'I', 'Italic', { fontStyle: 'italic' }],
+                  ['~', 'S', 'Strikethrough', { textDecoration: 'line-through' }],
+                ].map(([mark, label, title, style]) => (
+                  <button key={mark} type="button" title={title} onClick={() => wrapSelection(mark)}
+                    className="w-8 h-8 text-sm" style={{ background: 'var(--c-surface)', border: '1px solid #E5E7EB', ...style }}>
+                    {label}
+                  </button>
+                ))}
+                <span className="w-px h-6 mx-1" style={{ background: '#E5E7EB' }} />
+                {QUICK_EMOJIS.map(emoji => (
+                  <button key={emoji} type="button" onClick={() => insertText(emoji)}
+                    className="w-8 h-8 text-base" style={{ background: 'var(--c-surface)', border: '1px solid #E5E7EB' }}>
+                    {emoji}
+                  </button>
+                ))}
+              </div>
+
+              <textarea ref={textRef} className="form-input min-h-[180px]" value={formData.marketing_text}
+                placeholder="Write your message. Emojis, line breaks and *bold* / _italic_ / ~strike~ all carry through to WhatsApp."
+                onChange={e => setFormData(prev => ({ ...prev, marketing_text: e.target.value }))} />
+              <p className="mt-1 text-xs" style={{ color: 'var(--c-text-light)' }}>
+                {formData.marketing_text.length} characters · the referrer&apos;s code and shop link are added automatically when they share.
+              </p>
+
+              {formData.marketing_text.trim() && (
+                <div className="mt-3">
+                  <p className="text-xs font-semibold tracking-widest uppercase mb-1" style={{ color: 'var(--c-text-muted)' }}>Preview</p>
+                  <div className="p-4 text-sm leading-relaxed whitespace-pre-line" style={{ background: 'var(--c-surface)', border: '1px solid #E5E7EB', color: 'var(--c-text)' }}>
+                    {renderFormattedText(formData.marketing_text)}
+                  </div>
+                </div>
+              )}
             </div>
             <button
               type="button"
@@ -1209,6 +1377,7 @@ function Dashboard({ profile, sharePayload, media, isAdmin, onProfileUpdated, on
   const referralCode  = sharePayload?.referral_code || profile?.referral_code || '—'
   const whatsappLink  = sharePayload?.whatsapp_link  || null
   const shareMessage  = sharePayload?.share_message  || null
+  const shareFooter   = sharePayload?.share_footer   || null
 
   const flyers = media.filter(m => m.media_type === 'flyer')
   const videos = media.filter(m => m.media_type === 'video')
@@ -1393,7 +1562,7 @@ function Dashboard({ profile, sharePayload, media, isAdmin, onProfileUpdated, on
               </p>
               <div className="relative p-6 text-sm leading-relaxed whitespace-pre-line"
                 style={{ background: 'var(--c-surface)', border: '1px solid #E5E7EB', color: 'var(--c-text)' }}>
-                {shareMessage}
+                {renderFormattedText(shareMessage)}
                 <button
                   onClick={() => copyMsg(shareMessage)}
                   className="absolute top-4 right-4 flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium transition-all duration-200"
@@ -1414,12 +1583,12 @@ function Dashboard({ profile, sharePayload, media, isAdmin, onProfileUpdated, on
       {media.length > 0 && (
         <section className="py-16 lg:py-20" style={{ background: 'var(--c-bg)' }}>
           <div className="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-            <div className="mb-12 reveal">
+            <div className="mb-12">
               <p className="section-eyebrow">Ready to share</p>
               <h2 className="section-title">Promotional Materials</h2>
               <div className="divider-gold mt-4" />
               <p className="section-subtitle mt-4">
-                Download and share these professionally designed marketing assets with your audience.
+                Tap Share to send a flyer or video with your caption and referral code straight to WhatsApp, Instagram and more.
               </p>
             </div>
 
@@ -1431,7 +1600,7 @@ function Dashboard({ profile, sharePayload, media, isAdmin, onProfileUpdated, on
                   ✦ Flyers ({flyers.length})
                 </p>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
-                  {flyers.map(item => <MediaCard key={item.id} item={item} />)}
+                  {flyers.map(item => <MediaCard key={item.id} item={item} referralCode={referralCode} shareFooter={shareFooter} />)}
                 </div>
               </div>
             )}
@@ -1444,7 +1613,7 @@ function Dashboard({ profile, sharePayload, media, isAdmin, onProfileUpdated, on
                   ▶ Videos ({videos.length})
                 </p>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {videos.map(item => <MediaCard key={item.id} item={item} />)}
+                  {videos.map(item => <MediaCard key={item.id} item={item} referralCode={referralCode} shareFooter={shareFooter} />)}
                 </div>
               </div>
             )}
@@ -1456,7 +1625,7 @@ function Dashboard({ profile, sharePayload, media, isAdmin, onProfileUpdated, on
       {media.length === 0 && (
         <section className="py-16" style={{ background: 'var(--c-bg)' }}>
           <div className="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-            <div className="reveal text-center py-16"
+            <div className="text-center py-16"
               style={{ background: 'var(--c-surface)', border: '1px solid #F3F4F6' }}>
               <div className="w-14 h-14 mx-auto mb-5 flex items-center justify-center"
                 style={{ background: 'rgba(6,78,59,0.06)', color: 'var(--c-text-light)' }}>
